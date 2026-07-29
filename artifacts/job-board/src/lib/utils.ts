@@ -24,6 +24,21 @@ export function formatDate(dateString: string | null | undefined) {
   }
 }
 
+// Matches the API's ordering rule: estimatedInstallDate ascending with
+// undated jobs last, tie-broken by customer name.
+export function sortByInstallDate<
+  T extends { estimatedInstallDate?: string | null; customerName: string },
+>(jobs: T[]): T[] {
+  return [...jobs].sort((a, b) => {
+    const ad = a.estimatedInstallDate;
+    const bd = b.estimatedInstallDate;
+    if (ad && bd && ad !== bd) return ad < bd ? -1 : 1;
+    if (ad && !bd) return -1;
+    if (!ad && bd) return 1;
+    return a.customerName.localeCompare(b.customerName);
+  });
+}
+
 export const STAGE_LABELS: Record<string, string> = {
   new_lead: 'New Lead',
   scheduled: 'Scheduled',

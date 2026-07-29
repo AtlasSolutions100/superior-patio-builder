@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useListJobs, useGetCurrentUser, Job } from "@workspace/api-client-react";
-import { STAGE_LABELS, STAGE_GROUPS, PIPELINE_STAGES } from "@/lib/utils";
+import { STAGE_LABELS, STAGE_GROUPS, PIPELINE_STAGES, sortByInstallDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, AlertTriangle, RefreshCw } from "lucide-react";
 import JobCard from "@/components/job-card";
@@ -122,7 +122,7 @@ export default function BoardPage() {
               <GroupColumn
                 key={group.key}
                 label={group.label}
-                jobs={group.stages.flatMap(stage => jobsByStage[stage] || [])}
+                jobs={sortByInstallDate(group.stages.flatMap(stage => jobsByStage[stage] || []))}
               />
             ))}
           </div>
