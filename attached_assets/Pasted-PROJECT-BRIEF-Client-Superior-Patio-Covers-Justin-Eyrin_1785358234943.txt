@@ -1,0 +1,66 @@
+PROJECT BRIEF
+Client: Superior Patio Covers (Justin Eyring)
+What they do: Design and install patio covers, louvered pergolas, drop shades, and structures across southern and central Idaho (Twin Falls base, work throughout the state including Boise area, Sun Valley, etc.).
+
+Primary users / roles:
+- Justin Eyring – Owner / Sales / Ordering / Project Management (full access)
+- Blair Rhodehouse – Project Management (full operational access)
+- Ryan Bos – Sales + Installation Tech (view + limited status updates)
+- Denzil Lloyd – Installation Tech (view + limited status updates)
+- Bill Conant – Sales
+- Janelle Eyring – Office support / Sales Appointment Scheduler
+
+Source of truth today:
+- Job Tracking Google Sheet (post-Sold operational tracking)
+- OneClick Contractor (estimates, bids, contracts)
+- QuickBooks (customers + invoicing)
+- Deepwater Marketing Google Sheet (leads)
+
+Must not break or replace:
+- OneClick Contractor
+- QuickBooks
+- Deepwater Marketing lead feed
+
+End-to-end stages (exact stages Justin provided):
+New Lead → Scheduled → Bid Given → Sold → 
+Invoiced with QuickBooks → Deposit Paid → Pre Order Site Visit → 
+Material Ordered / Non Standard Material Ordered → 
+Permit Applied → Footings Needed → Other Prep Work → 
+Material Received → Ready to Install → Installed → 
+Post Install Follow up → Google Review or referral Asked for
+
+Critical rule: When a job is moved to “Sold”, an Estimated Installation Date must be entered. This date is used to sort jobs chronologically inside every column (soonest install date always on top).
+
+Phase 1 must work:
+- Kanban + List view of post-Sold jobs using the exact stages above
+- Mandatory Estimated Installation Date at the Sold gate
+- Automatic chronological sorting by Estimated Installation Date inside each column
+- Core fields: Customer Name, Phone, Address, City, Type of Cover, Contract Amount, Source, Estimated Installation Date, current stage, last note
+- Simple tracking for: Invoiced with QB, Deposit Paid, Ordered, Received
+- CSV export of the operational columns
+- Role-based access (Justin & Blair full; techs limited)
+
+Out of scope for Phase 1:
+- Any automation of leads into OneClick Contractor
+- Any write-back to QuickBooks
+- Full payment / check reconciliation columns
+- Photo uploads, material inventory, time tracking, or mobile crew app
+- AI features or complex reporting
+
+Top pains we are solving first:
+1. No single clear place for Justin and Blair to see job status + soonest-install priority
+2. Loss of chronological order and manual upkeep of the Job Tracking sheet after a job is Sold
+
+Definition of done for Phase 1:
+Justin and Blair can run daily operations from the board. Every post-Sold job is visible, sorted by soonest install date, and can be moved between stages in two clicks. A clean CSV export is available. The Google Sheet is no longer needed for live status tracking.
+
+Feedback plan:
+Build prototype → load 12–15 real jobs from the existing Job Tracking sheet → Justin & Blair review stages, sorting, and fields → iterate until it matches how they actually work.
+
+Who has final priority say: Justin Eyring
+
+Notes / constraints:
+- Keep the dense “spreadsheet mental model” – Justin hates tools that feel scattered
+- Estimated Installation Date is non-negotiable for sorting
+- Financial detail stays in QuickBooks for now
+- Desktop-first
