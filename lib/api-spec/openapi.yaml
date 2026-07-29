@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Superior Patio Covers Job Board API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: jobs
+    description: Job tracking operations
+  - name: users
+    description: User and role operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,313 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /me:
+    get:
+      operationId: getCurrentUser
+      tags: [users]
+      summary: Get the current signed-in user and their role
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users with roles (full-access only)
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppUser"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /users/{id}:
+    patch:
+      operationId: updateUserRole
+      tags: [users]
+      summary: Update a user's role (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUser"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List jobs with optional filters, sorted by estimated install date ascending
+      parameters:
+        - name: stage
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/JobStage"
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: coverType
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          required: false
+          description: Filter by estimated install date on or after (YYYY-MM-DD)
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          required: false
+          description: Filter by estimated install date on or before (YYYY-MM-DD)
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: Case-insensitive match on customer name, address, or city
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Jobs sorted by estimated install date ascending (nulls last)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+    post:
+      operationId: createJob
+      tags: [jobs]
+      summary: Create a job (full-access only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobInput"
+      responses:
+        "201":
+          description: Created job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /jobs/{id}:
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get a single job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    patch:
+      operationId: updateJob
+      tags: [jobs]
+      summary: Update job fields (full edit for admins; techs may only add a note)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobUpdate"
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "400":
+          description: Validation error (e.g. Sold requires estimated install date)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    delete:
+      operationId: deleteJob
+      tags: [jobs]
+      summary: Delete a job (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /jobs/{id}/stage:
+    patch:
+      operationId: moveJobStage
+      tags: [jobs]
+      summary: Move a job to a new stage (Sold requires estimatedInstallDate; techs may only move to installed)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobStageMove"
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "400":
+          description: Validation error (Sold gate)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /jobs/export:
+    get:
+      operationId: exportJobsCsv
+      tags: [jobs]
+      summary: Export operational columns as CSV
+      responses:
+        "200":
+          description: CSV file of jobs
+          content:
+            text/csv:
+              schema:
+                type: string
+  /summary:
+    get:
+      operationId: getBoardSummary
+      tags: [jobs]
+      summary: Board summary - counts and contract totals by stage, upcoming installs
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardSummary"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +344,228 @@ components:
           type: string
       required:
         - status
-
+    ErrorMessage:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    UserRole:
+      type: string
+      enum: [admin, tech, viewer]
+      description: admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only
+    CurrentUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkUserId:
+          type: string
+        email:
+          type: ["string", "null"]
+        name:
+          type: ["string", "null"]
+        role:
+          $ref: "#/components/schemas/UserRole"
+      required: [id, clerkUserId, email, name, role]
+    AppUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkUserId:
+          type: string
+        email:
+          type: ["string", "null"]
+        name:
+          type: ["string", "null"]
+        role:
+          $ref: "#/components/schemas/UserRole"
+        createdAt:
+          type: string
+      required: [id, clerkUserId, email, name, role, createdAt]
+    UserRoleUpdate:
+      type: object
+      properties:
+        role:
+          $ref: "#/components/schemas/UserRole"
+      required: [role]
+    JobStage:
+      type: string
+      enum:
+        - new_lead
+        - scheduled
+        - bid_given
+        - sold
+        - invoiced_with_quickbooks
+        - deposit_paid
+        - pre_order_site_visit
+        - material_ordered
+        - non_standard_material_ordered
+        - permit_applied
+        - footings_needed
+        - other_prep_work
+        - material_received
+        - ready_to_install
+        - installed
+        - post_install_follow_up
+        - review_asked
+      description: Exact operational stages in order
+    Job:
+      type: object
+      properties:
+        id:
+          type: integer
+        customerName:
+          type: string
+        phone:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        coverType:
+          type: ["string", "null"]
+        contractAmount:
+          type: ["number", "null"]
+        source:
+          type: ["string", "null"]
+        estimatedInstallDate:
+          type: ["string", "null"]
+          description: YYYY-MM-DD. Required once a job is Sold or beyond.
+        stage:
+          $ref: "#/components/schemas/JobStage"
+        lastNote:
+          type: ["string", "null"]
+        invoicedWithQb:
+          type: boolean
+        depositPaid:
+          type: boolean
+        materialOrdered:
+          type: boolean
+        materialReceived:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - customerName
+        - phone
+        - address
+        - city
+        - coverType
+        - contractAmount
+        - source
+        - estimatedInstallDate
+        - stage
+        - lastNote
+        - invoicedWithQb
+        - depositPaid
+        - materialOrdered
+        - materialReceived
+        - createdAt
+        - updatedAt
+    JobInput:
+      type: object
+      properties:
+        customerName:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        coverType:
+          type: string
+        contractAmount:
+          type: number
+        source:
+          type: string
+        estimatedInstallDate:
+          type: ["string", "null"]
+        stage:
+          $ref: "#/components/schemas/JobStage"
+        lastNote:
+          type: string
+        invoicedWithQb:
+          type: boolean
+        depositPaid:
+          type: boolean
+        materialOrdered:
+          type: boolean
+        materialReceived:
+          type: boolean
+      required: [customerName]
+    JobUpdate:
+      type: object
+      properties:
+        customerName:
+          type: string
+          minLength: 1
+        phone:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        coverType:
+          type: ["string", "null"]
+        contractAmount:
+          type: ["number", "null"]
+        source:
+          type: ["string", "null"]
+        estimatedInstallDate:
+          type: ["string", "null"]
+        lastNote:
+          type: ["string", "null"]
+        invoicedWithQb:
+          type: boolean
+        depositPaid:
+          type: boolean
+        materialOrdered:
+          type: boolean
+        materialReceived:
+          type: boolean
+    JobStageMove:
+      type: object
+      properties:
+        stage:
+          $ref: "#/components/schemas/JobStage"
+        estimatedInstallDate:
+          type: ["string", "null"]
+          description: Required when moving to sold if the job does not already have one
+      required: [stage]
+    StageSummary:
+      type: object
+      properties:
+        stage:
+          $ref: "#/components/schemas/JobStage"
+        count:
+          type: integer
+        contractTotal:
+          type: number
+      required: [stage, count, contractTotal]
+    BoardSummary:
+      type: object
+      properties:
+        totalJobs:
+          type: integer
+        totalContractValue:
+          type: number
+        installsNext14Days:
+          type: integer
+        byStage:
+          type: array
+          items:
+            $ref: "#/components/schemas/StageSummary"
+        upcomingInstalls:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+          description: Next 5 jobs by soonest estimated install date (not yet installed)
+      required: [totalJobs, totalContractValue, installsNext14Days, byStage, upcomingInstalls]

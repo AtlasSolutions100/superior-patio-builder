@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
+  <rect width="200" height="60" fill="transparent"/>
+  <path d="M10 20 L30 10 L50 20 L50 40 L30 50 L10 40 Z" fill="#E86C20" opacity="0.9"/>
+  <path d="M10 20 L30 10 L30 30 Z" fill="#FFFFFF" opacity="0.3"/>
+  <text x="65" y="38" font-family="sans-serif" font-weight="800" font-size="20" fill="#E86C20">SUPERIOR</text>
+  <text x="170" y="38" font-family="sans-serif" font-weight="500" font-size="14" fill="#302621">PATIO</text>
+</svg>

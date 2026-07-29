@@ -1,45 +1,27 @@
-# [Project name]
+# Superior Patio Covers Job Board
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Job status board for Superior Patio Covers (Justin Eyring, Twin Falls, Idaho) — a patio cover / pergola design & install company. Desktop-first, dense "spreadsheet-feel" Kanban tracking every job from lead through Google review.
 
-## Run & Operate
+## Project overview
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- **Frontend** (`artifacts/job-board`): React + Vite + wouter + TanStack Query, served at preview path `/`. Pages: public landing `/`, Clerk `/sign-in` & `/sign-up`, Kanban `/board` (default after sign-in; Operations view = post-Sold stages, plus a Sales Pipeline view), dense `/list` table with filters + CSV export, `/team` role management (admins).
+- **API** (`artifacts/api-server`): Express 5 at `/api`, implements `lib/api-spec/openapi.yaml` (orval codegen → `@workspace/api-client-react`, `@workspace/api-zod`). Routes in `src/routes/{users,jobs}.ts`.
+- **DB** (`lib/db`): Drizzle + Postgres. Tables: `jobs`, `app_users`. Stage enum + `POST_SOLD_STAGES` in `lib/db/src/schema/jobs.ts`.
+- **Auth**: Replit-managed Clerk (cookie-based on web). `requireUser` middleware JIT-provisions `app_users`; first signup ever becomes `admin`, later signups default to `viewer`.
 
-## Stack
+## Domain rules
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
-
-## Where things live
-
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
-
-## Architecture decisions
-
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Stages (exact order): New Lead, Scheduled, Bid Given, Sold, Invoiced with QuickBooks, Deposit Paid, Pre Order Site Visit, Material Ordered, Non Standard Material Ordered, Permit Applied, Footings Needed, Other Prep Work, Material Received, Ready to Install, Installed, Post Install Follow up, Google Review or referral Asked for.
+- Moving to Sold (or any later stage) **requires an Estimated Installation Date** — enforced in UI and API (400).
+- Every board column and the list are sorted by Est. Install Date ascending, nulls last.
+- Roles: `admin` = full edit (Justin, Blair); `tech` = view + move to Installed + edit note (Ryan, Denzil); `viewer` = read-only. Admin assigns roles at `/team`.
+- Job toggles: Invoiced with QB, Deposit Paid, Ordered, Received.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Dense, desktop-first, spreadsheet mental model; no scattered UI. No emojis in UI.
 
-## Gotchas
+## Notes
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Workspace zod catalog is v4 (`pnpm-workspace.yaml`) — required by orval-generated zod code.
+- 14 seeded example jobs in the dev database.
