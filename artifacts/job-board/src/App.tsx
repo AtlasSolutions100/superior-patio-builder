@@ -101,7 +101,7 @@ function HomeRedirect() {
   return (
     <>
       <Show when="signed-in">
-        <Redirect to="/board" />
+        <Redirect to="/list" />
       </Show>
       <Show when="signed-out">
         <LandingPage />

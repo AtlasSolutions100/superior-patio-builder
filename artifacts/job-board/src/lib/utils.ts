@@ -41,7 +41,7 @@ export const STAGE_LABELS: Record<string, string> = {
   ready_to_install: 'Ready to Install',
   installed: 'Installed',
   post_install_follow_up: 'Post Install Follow up',
-  review_asked: 'Review Asked',
+  review_asked: 'Google Review or referral Asked for',
 };
 
 export const SALES_STAGES = [

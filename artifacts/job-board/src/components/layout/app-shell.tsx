@@ -18,8 +18,8 @@ export function AppShell({ children }: AppShellProps) {
   const { data: user, isLoading } = useGetCurrentUser();
 
   const links = [
-    { href: "/board", label: "Job Board", icon: KanbanSquare },
-    { href: "/list", label: "List View", icon: Table2 },
+    { href: "/list", label: "Job List", icon: Table2 },
+    { href: "/board", label: "Kanban Board", icon: KanbanSquare },
     { href: "/team", label: "Team Access", icon: Users, adminOnly: true },
   ];
 
