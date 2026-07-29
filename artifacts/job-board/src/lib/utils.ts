@@ -44,6 +44,18 @@ export const STAGE_LABELS: Record<string, string> = {
   review_asked: 'Google Review or referral Asked for',
 };
 
+// Full pipeline, in order. All 17 stages shown on the board.
+export const ALL_STAGES = [
+  'new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks',
+  'deposit_paid', 'pre_order_site_visit', 'material_ordered',
+  'non_standard_material_ordered', 'permit_applied', 'footings_needed',
+  'other_prep_work', 'material_received', 'ready_to_install', 'installed',
+  'post_install_follow_up', 'review_asked'
+] as const;
+
+// Columns that stay pinned to the left edge of the board once reached.
+export const STICKY_STAGES = ['sold', 'invoiced_with_quickbooks', 'deposit_paid'] as const;
+
 export const SALES_STAGES = [
   'new_lead', 'scheduled', 'bid_given', 'sold'
 ] as const;
