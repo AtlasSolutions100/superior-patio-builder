@@ -30,6 +30,8 @@ import {
   ArrowDown,
   ChevronDown,
   PenSquare,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { queryClient } from "@/lib/query-client";
@@ -69,7 +71,7 @@ export default function ListPage() {
     return () => clearTimeout(timer);
   }, [filters]);
 
-  const { data: jobs, isLoading } = useListJobs({
+  const { data: jobs, isLoading, error, refetch, isRefetching } = useListJobs({
     search: debouncedFilters.search || undefined,
     stage: debouncedFilters.stage ? (debouncedFilters.stage as any) : undefined,
     city: debouncedFilters.city || undefined,
@@ -250,6 +252,34 @@ export default function ListPage() {
                 <td colSpan={12} className="px-4 py-10 text-center text-muted-foreground">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                   Loading jobs...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={12} className="px-4 py-10 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <AlertTriangle className="w-6 h-6 text-destructive" />
+                    <p className="text-sm font-medium text-destructive">
+                      Couldn't load jobs.
+                    </p>
+                    <p className="text-xs text-muted-foreground max-w-sm">
+                      Something went wrong while fetching the job list. Your data is safe — try again.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-1"
+                      onClick={() => refetch()}
+                      disabled={isRefetching}
+                    >
+                      {isRefetching ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      Retry
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ) : sortedJobs?.length === 0 ? (

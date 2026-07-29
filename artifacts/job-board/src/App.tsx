@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from '@clerk/react';
+import { setAuthTokenGetter, setUnauthorizedRetryHandler } from "@workspace/api-client-react";
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
@@ -110,6 +111,36 @@ function HomeRedirect() {
   );
 }
 
+/**
+ * Keeps API requests authorized: attaches a fresh Clerk session token to
+ * every API call (tokens are short-lived and the session cookie can go
+ * stale, e.g. across API-server restarts or idle tabs), and on a 401 forces
+ * a token refresh so the request is retried once with fresh credentials.
+ */
+function ApiAuthBridge() {
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    setAuthTokenGetter(async () => {
+      try {
+        return await getToken();
+      } catch {
+        return null;
+      }
+    });
+    setUnauthorizedRetryHandler(async () => {
+      const token = await getToken({ skipCache: true });
+      return !!token;
+    });
+    return () => {
+      setAuthTokenGetter(null);
+      setUnauthorizedRetryHandler(null);
+    };
+  }, [getToken]);
+
+  return null;
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const queryClient = useQueryClient();
@@ -160,6 +191,7 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <ApiAuthBridge />
         <ClerkQueryClientCacheInvalidator />
         <Toaster />
         <Switch>

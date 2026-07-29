@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _unauthorizedRetryHandler: (() => Promise<boolean>) | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +43,20 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Register a handler invoked when a request fails with 401 Unauthorized.
+ * The handler should attempt to refresh the caller's credentials (e.g. force
+ * a fresh Clerk session token) and resolve `true` when the request should be
+ * retried once with fresh credentials, or `false` to surface the 401.
+ *
+ * Pass `null` to clear the handler.
+ */
+export function setUnauthorizedRetryHandler(
+  handler: (() => Promise<boolean>) | null,
+): void {
+  _unauthorizedRetryHandler = handler;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -349,18 +364,41 @@ export async function customFetch<T = unknown>(
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 
-  // Attach bearer token when an auth getter is configured and no
-  // Authorization header has been explicitly provided.
-  if (_authTokenGetter && !headers.has("authorization")) {
-    const token = await _authTokenGetter();
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
+  const requestInfo = { method, url: resolveUrl(input) };
+  const hadExplicitAuthHeader = headers.has("authorization");
+
+  const doFetch = async (): Promise<Response> => {
+    const requestHeaders = new Headers(headers);
+    // Attach bearer token when an auth getter is configured and no
+    // Authorization header has been explicitly provided.
+    if (_authTokenGetter && !hadExplicitAuthHeader) {
+      const token = await _authTokenGetter();
+      if (token) {
+        requestHeaders.set("authorization", `Bearer ${token}`);
+      }
+    }
+    return fetch(input, { ...init, method, headers: requestHeaders });
+  };
+
+  let response = await doFetch();
+
+  // On 401, give the app one chance to refresh credentials (e.g. force a
+  // fresh Clerk session token) and retry the request once.
+  if (
+    response.status === 401 &&
+    _unauthorizedRetryHandler &&
+    !hadExplicitAuthHeader
+  ) {
+    let shouldRetry = false;
+    try {
+      shouldRetry = await _unauthorizedRetryHandler();
+    } catch {
+      shouldRetry = false;
+    }
+    if (shouldRetry) {
+      response = await doFetch();
     }
   }
-
-  const requestInfo = { method, url: resolveUrl(input) };
-
-  const response = await fetch(input, { ...init, method, headers });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

@@ -2,7 +2,7 @@ import * as React from "react";
 import { useListJobs, useGetCurrentUser, Job } from "@workspace/api-client-react";
 import { STAGE_LABELS, STAGE_GROUPS, PIPELINE_STAGES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, AlertTriangle, RefreshCw } from "lucide-react";
 import JobCard from "@/components/job-card";
 import { JobDialog } from "@/components/job-dialog";
 
@@ -10,7 +10,7 @@ const COL_MIN_WIDTH = 240; // px
 
 export default function BoardPage() {
   const { data: user } = useGetCurrentUser();
-  const { data: jobs, isLoading, error } = useListJobs();
+  const { data: jobs, isLoading, error, refetch, isRefetching } = useListJobs();
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [pipelineChoice, setPipelineChoice] = React.useState<boolean | null>(null);
@@ -32,8 +32,24 @@ export default function BoardPage() {
   // so no job is ever invisible; the user can still toggle it off.
   const showPipeline = pipelineChoice ?? pipelineJobs.length > 0;
 
-  if (error) {
-    return <div className="p-8 text-destructive">Failed to load jobs.</div>;
+  if (error && !jobs) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
+        <AlertTriangle className="w-7 h-7 text-destructive" />
+        <p className="text-sm font-medium text-destructive">Couldn't load jobs.</p>
+        <p className="text-xs text-muted-foreground max-w-sm">
+          Something went wrong while fetching the board. Your data is safe — try again.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
+          {isRefetching ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
+          Retry
+        </Button>
+      </div>
+    );
   }
 
   const groups = showPipeline
@@ -70,6 +86,25 @@ export default function BoardPage() {
           )}
         </div>
       </div>
+
+      {error && jobs && (
+        <div className="flex-none mx-6 mb-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+          <span>Couldn't refresh jobs — the board may be out of date.</span>
+          <button
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="ml-auto inline-flex items-center gap-1 font-semibold hover:underline disabled:opacity-50"
+          >
+            {isRefetching ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3 h-3" />
+            )}
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden board-scrollbar">
         {isLoading ? (
