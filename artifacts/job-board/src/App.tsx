@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from '@clerk/react';
+import { useState } from "react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth, useSignIn } from '@clerk/react';
 import { setAuthTokenGetter, setUnauthorizedRetryHandler } from "@workspace/api-client-react";
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
@@ -82,10 +83,82 @@ const clerkAppearance = {
   },
 };
 
+// Demo login is development-only: dev and prod Clerk user stores are
+// separate, and these buttons only render with development (pk_test) keys.
+const isDevClerkInstance = clerkPubKey.startsWith("pk_test_");
+
+const DEMO_ACCOUNTS = [
+  { label: "Demo Login as Admin", email: "admin@demo.com" },
+  { label: "Demo Login as Tech", email: "tech@demo.com" },
+  { label: "Demo Login as Viewer", email: "viewer@demo.com" },
+] as const;
+const DEMO_PASSWORD = "password123";
+
+function DemoLoginButtons() {
+  const { signIn } = useSignIn();
+  const [, setLocation] = useLocation();
+  const [busyEmail, setBusyEmail] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isDevClerkInstance) return null;
+
+  const loginAs = async (email: string) => {
+    if (busyEmail) return;
+    setBusyEmail(email);
+    setError(null);
+    try {
+      const { error: signInError } = await signIn.password({
+        identifier: email,
+        password: DEMO_PASSWORD,
+      });
+      if (signInError) {
+        setError("Demo sign-in failed. Try the form above.");
+        return;
+      }
+      if (signIn.status === "complete") {
+        await signIn.finalize({
+          navigate: () => setLocation("/board"),
+        });
+      } else {
+        setError("Demo sign-in needs extra steps — try the form above.");
+      }
+    } catch {
+      setError("Demo sign-in failed. Try the form above.");
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
+  return (
+    <div className="mt-4 w-[440px] max-w-full rounded-2xl border bg-white p-4 shadow-sm">
+      <p className="mb-3 text-center text-sm font-medium text-muted-foreground">
+        Testing? Skip the form:
+      </p>
+      <div className="flex flex-col gap-2">
+        {DEMO_ACCOUNTS.map(({ label, email }) => (
+          <button
+            key={email}
+            type="button"
+            disabled={busyEmail !== null}
+            onClick={() => loginAs(email)}
+            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+          >
+            {busyEmail === email ? "Signing in…" : label}
+          </button>
+        ))}
+      </div>
+      {error && (
+        <p className="mt-2 text-center text-sm text-destructive">{error}</p>
+      )}
+    </div>
+  );
+}
+
 function SignInPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-8">
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <DemoLoginButtons />
     </div>
   );
 }

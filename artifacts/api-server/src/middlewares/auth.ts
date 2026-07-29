@@ -12,8 +12,19 @@ declare global {
 }
 
 /**
+ * Seeded demo accounts (dev-only Clerk users) get a fixed role on first
+ * sign-in instead of going through the first-signup-becomes-admin rule.
+ */
+const DEMO_ROLE_BY_EMAIL: Record<string, AppUser["role"]> = {
+  "admin@demo.com": "admin",
+  "tech@demo.com": "tech",
+  "viewer@demo.com": "viewer",
+};
+
+/**
  * Requires a Clerk session and just-in-time provisions a local app_users row.
  * The first user to ever sign in becomes admin; everyone else defaults to viewer.
+ * Demo accounts are pre-mapped to their role via DEMO_ROLE_BY_EMAIL.
  */
 export async function requireUser(
   req: Request,
@@ -45,10 +56,15 @@ export async function requireUser(
       req.log.warn({ err }, "Could not fetch Clerk user profile");
     }
 
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(appUsersTable);
-    const role = count === 0 ? "admin" : "viewer";
+    let role: string | undefined = email
+      ? DEMO_ROLE_BY_EMAIL[email.toLowerCase()]
+      : undefined;
+    if (!role) {
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(appUsersTable);
+      role = count === 0 ? "admin" : "viewer";
+    }
 
     [user] = await db
       .insert(appUsersTable)
