@@ -1,78 +1,95 @@
 import * as React from "react";
 import { useListJobs, useGetCurrentUser, Job } from "@workspace/api-client-react";
-import { STAGE_LABELS, ALL_STAGES, STICKY_STAGES } from "@/lib/utils";
+import { STAGE_LABELS, STAGE_GROUPS, PIPELINE_STAGES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
 import JobCard from "@/components/job-card";
 import { JobDialog } from "@/components/job-dialog";
 
-// Column sizing shared between layout and sticky offsets.
-const COL_WIDTH = 280; // px, includes internal padding so sticky columns tile with no gaps
+const COL_MIN_WIDTH = 240; // px
 
 export default function BoardPage() {
   const { data: user } = useGetCurrentUser();
   const { data: jobs, isLoading, error } = useListJobs();
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [pipelineChoice, setPipelineChoice] = React.useState<boolean | null>(null);
 
   const jobsByStage = React.useMemo(() => {
-    const acc = ALL_STAGES.reduce((map, stage) => {
-      map[stage] = [];
-      return map;
-    }, {} as Record<string, Job[]>);
-
-    if (jobs) {
-      jobs.forEach(job => {
-        if (acc[job.stage]) {
-          acc[job.stage].push(job);
-        }
-      });
-    }
+    const acc: Record<string, Job[]> = {};
+    jobs?.forEach(job => {
+      (acc[job.stage] ||= []).push(job);
+    });
     return acc;
   }, [jobs]);
+
+  const pipelineJobs = React.useMemo(
+    () => PIPELINE_STAGES.flatMap(stage => jobsByStage[stage] || []),
+    [jobsByStage]
+  );
+
+  // Show the sales pipeline column by default whenever it holds jobs,
+  // so no job is ever invisible; the user can still toggle it off.
+  const showPipeline = pipelineChoice ?? pipelineJobs.length > 0;
 
   if (error) {
     return <div className="p-8 text-destructive">Failed to load jobs.</div>;
   }
 
+  const groups = showPipeline
+    ? [{ key: "pipeline", label: "Pipeline", stages: [...PIPELINE_STAGES] }, ...STAGE_GROUPS]
+    : STAGE_GROUPS;
+
   return (
-    <div className="flex flex-col h-full bg-background relative">
-      <div className="flex-none px-4 py-3 md:px-6 border-b border-border bg-card flex items-center justify-between gap-4 shrink-0">
+    <div className="flex flex-col h-full bg-background">
+      <div className="flex-none px-6 py-4 flex items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Job Board</h1>
-          <p className="text-xs text-muted-foreground">
-            {jobs?.length || 0} active jobs across {ALL_STAGES.length} stages
+          <h1 className="text-xl font-semibold tracking-tight">Job Board</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {jobs?.length || 0} active jobs
           </p>
         </div>
 
-        {user?.role === "admin" && (
-          <Button onClick={() => setIsCreateOpen(true)} size="sm" className="h-9">
-            <Plus className="w-4 h-4 mr-2" />
-            New Job
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setPipelineChoice(!showPipeline)}
+            className={`text-xs px-3 h-8 rounded-full border transition-colors ${
+              showPipeline
+                ? "border-foreground/20 text-foreground bg-accent/50"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Sales pipeline{pipelineJobs.length > 0 ? ` · ${pipelineJobs.length}` : ""}
+          </button>
+
+          {user?.role === "admin" && (
+            <Button onClick={() => setIsCreateOpen(true)} size="sm" className="h-8">
+              <Plus className="w-4 h-4 mr-1.5" />
+              New Job
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-x-scroll overflow-y-hidden board-scrollbar bg-accent/20">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden board-scrollbar">
         {isLoading ? (
           <div className="h-full flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex h-full w-max py-4">
-            {ALL_STAGES.map(stage => {
-              const stickyIndex = (STICKY_STAGES as readonly string[]).indexOf(stage);
-              return (
-                <BoardColumn
-                  key={stage}
-                  stage={stage}
-                  jobs={jobsByStage[stage] || []}
-                  stickyLeft={stickyIndex >= 0 ? stickyIndex * COL_WIDTH : undefined}
-                />
-              );
-            })}
-            {/* right padding spacer so last column isn't flush against the edge */}
-            <div className="w-2 shrink-0" />
+          <div
+            className="grid h-full gap-5 px-6 pb-6 min-w-full w-max"
+            style={{
+              gridTemplateColumns: `repeat(${groups.length}, minmax(${COL_MIN_WIDTH}px, 1fr))`,
+            }}
+          >
+            {groups.map(group => (
+              <GroupColumn
+                key={group.key}
+                label={group.label}
+                jobs={group.stages.flatMap(stage => jobsByStage[stage] || [])}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -82,30 +99,20 @@ export default function BoardPage() {
   );
 }
 
-function BoardColumn({ stage, jobs, stickyLeft }: { stage: string; jobs: Job[]; stickyLeft?: number }) {
-  const isSticky = stickyLeft !== undefined;
+function GroupColumn({ label, jobs }: { label: string; jobs: Job[] }) {
   return (
-    <div
-      className={`flex flex-col shrink-0 h-full max-h-full px-2 ${
-        isSticky ? "sticky z-10 bg-secondary border-r border-border shadow-[4px_0_8px_-4px_rgba(0,0,0,0.08)]" : ""
-      }`}
-      style={{ width: COL_WIDTH, ...(isSticky ? { left: stickyLeft } : {}) }}
-    >
-      <div className="flex items-center justify-between mb-2 px-1 shrink-0">
-        <h3 className="font-semibold text-sm text-foreground truncate" title={STAGE_LABELS[stage] || stage}>
-          {STAGE_LABELS[stage] || stage}
-        </h3>
-        <div className="text-muted-foreground text-xs font-mono px-1.5 shrink-0">
-          {jobs.length}
-        </div>
+    <div className="flex flex-col h-full max-h-full min-w-0">
+      <div className="flex items-baseline gap-2 mb-3 shrink-0">
+        <h3 className="text-sm font-medium text-foreground">{label}</h3>
+        <span className="text-xs text-muted-foreground tabular-nums">{jobs.length}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pb-4 pr-1">
+      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pb-4 pr-0.5">
         {jobs.map(job => (
           <JobCard key={job.id} job={job} />
         ))}
         {jobs.length === 0 && (
-          <div className="h-20 rounded-lg border border-dashed border-border flex items-center justify-center text-xs text-muted-foreground bg-card/50">
+          <div className="h-24 rounded-xl border border-dashed border-border/70 flex items-center justify-center text-xs text-muted-foreground/70">
             No jobs
           </div>
         )}

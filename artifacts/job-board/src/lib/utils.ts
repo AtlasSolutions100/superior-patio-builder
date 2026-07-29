@@ -53,8 +53,19 @@ export const ALL_STAGES = [
   'post_install_follow_up', 'review_asked'
 ] as const;
 
-// Columns that stay pinned to the left edge of the board once reached.
-export const STICKY_STAGES = ['sold', 'invoiced_with_quickbooks', 'deposit_paid'] as const;
+// Display-only grouping of the operational pipeline into 6 board columns.
+// Jobs always keep their exact underlying stage; this only affects layout.
+export const STAGE_GROUPS: { key: string; label: string; stages: string[] }[] = [
+  { key: 'sold', label: 'Sold', stages: ['sold'] },
+  { key: 'financial', label: 'Financial', stages: ['invoiced_with_quickbooks', 'deposit_paid'] },
+  { key: 'ordering', label: 'Ordering', stages: ['pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered'] },
+  { key: 'prep', label: 'Prep', stages: ['permit_applied', 'footings_needed', 'other_prep_work', 'material_received'] },
+  { key: 'install', label: 'Install', stages: ['ready_to_install', 'installed'] },
+  { key: 'followup', label: 'Follow-up', stages: ['post_install_follow_up', 'review_asked'] },
+];
+
+// Pre-sold stages shown in the optional sales pipeline column.
+export const PIPELINE_STAGES = ['new_lead', 'scheduled', 'bid_given'] as const;
 
 export const SALES_STAGES = [
   'new_lead', 'scheduled', 'bid_given', 'sold'

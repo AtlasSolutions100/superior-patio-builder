@@ -1,127 +1,107 @@
 import * as React from "react";
-import { formatDate, STAGE_LABELS } from "@/lib/utils";
+import { formatDate, STAGE_LABELS, STAGE_GROUPS, PIPELINE_STAGES } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Job, JobStage, useUpdateJob, getListJobsQueryKey, getGetBoardSummaryQueryKey, useGetCurrentUser } from "@workspace/api-client-react";
-import { queryClient } from "@/lib/query-client";
+import { Job, JobStage, useGetCurrentUser } from "@workspace/api-client-react";
 import { JobDialog } from "./job-dialog";
 import { MoveStageDialog } from "./move-stage-dialog";
 
+const MOVE_GROUPS: { label: string; stages: string[] }[] = [
+  { label: "Pipeline", stages: [...PIPELINE_STAGES] },
+  ...STAGE_GROUPS.map(g => ({ label: g.label, stages: g.stages })),
+];
+
 export default function JobCard({ job }: { job: Job }) {
   const { data: user } = useGetCurrentUser();
-  const updateJob = useUpdateJob();
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [moveStageIntent, setMoveStageIntent] = React.useState<JobStage | null>(null);
 
   const canEdit = user?.role === "admin";
   const canTechEdit = user?.role === "tech" || canEdit;
 
-  const handleToggle = (field: keyof Pick<Job, "invoicedWithQb" | "depositPaid" | "materialOrdered" | "materialReceived">) => {
-    if (!canEdit) return;
-
-    updateJob.mutate({
-      id: job.id,
-      data: { [field]: !job[field] }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetBoardSummaryQueryKey() });
-      }
-    });
-  };
-
-  const isLate = job.estimatedInstallDate && new Date(job.estimatedInstallDate) < new Date() && job.stage !== 'installed' && job.stage !== 'post_install_follow_up' && job.stage !== 'review_asked';
+  const isLate =
+    job.estimatedInstallDate &&
+    new Date(job.estimatedInstallDate) < new Date() &&
+    job.stage !== "installed" &&
+    job.stage !== "post_install_follow_up" &&
+    job.stage !== "review_asked";
 
   return (
     <>
-      <Card className="flex flex-col bg-card p-3 gap-2 shadow-none">
+      <Card className="flex flex-col bg-card rounded-xl border-border/70 p-4 gap-3 shadow-none">
         <div className="min-w-0">
+          <div className="text-[11px] text-muted-foreground/80 mb-1 truncate">
+            {STAGE_LABELS[job.stage] || job.stage}
+          </div>
           <h4
-            className={`font-semibold text-sm text-foreground truncate ${canTechEdit ? "cursor-pointer hover:text-primary" : ""}`}
+            className={`font-medium text-sm text-foreground truncate ${canTechEdit ? "cursor-pointer hover:text-primary" : ""}`}
             onClick={() => canTechEdit && setIsEditOpen(true)}
           >
             {job.customerName}
           </h4>
-          <div className="text-xs text-muted-foreground truncate">
+          <div className="text-xs text-muted-foreground truncate mt-0.5">
             {job.city || "No city"} · {job.coverType || "TBD"}
           </div>
         </div>
 
         <div className="flex items-center justify-between text-xs">
-          <span className={isLate ? "text-destructive font-semibold" : "text-muted-foreground"}>
+          <span className={isLate ? "text-destructive font-medium" : "text-muted-foreground"}>
             {job.estimatedInstallDate ? formatDate(job.estimatedInstallDate) : "No install date"}
           </span>
           {job.contractAmount != null && (
-            <span className="font-medium text-foreground">
+            <span className="font-medium text-foreground tabular-nums">
               ${job.contractAmount.toLocaleString()}
             </span>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-y-1.5">
-          <ToggleItem
-            id={`qb-${job.id}`}
-            label="Invoiced"
-            checked={job.invoicedWithQb}
-            onToggle={() => handleToggle("invoicedWithQb")}
-            disabled={!canEdit}
-          />
-          <ToggleItem
-            id={`dep-${job.id}`}
-            label="Deposit"
-            checked={job.depositPaid}
-            onToggle={() => handleToggle("depositPaid")}
-            disabled={!canEdit}
-          />
-          <ToggleItem
-            id={`mo-${job.id}`}
-            label="Mat. Ord"
-            checked={job.materialOrdered}
-            onToggle={() => handleToggle("materialOrdered")}
-            disabled={!canEdit}
-          />
-          <ToggleItem
-            id={`mr-${job.id}`}
-            label="Mat. Rec"
-            checked={job.materialReceived}
-            onToggle={() => handleToggle("materialReceived")}
-            disabled={!canEdit}
-          />
-        </div>
-
         {job.lastNote && (
-          <p className="text-xs text-muted-foreground italic line-clamp-1" title={job.lastNote}>
-            "{job.lastNote}"
+          <p className="text-xs text-muted-foreground line-clamp-1" title={job.lastNote}>
+            {job.lastNote}
           </p>
         )}
 
         {canTechEdit && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 w-full text-xs justify-between font-normal text-muted-foreground">
-                Move stage
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-full text-xs justify-between font-normal text-muted-foreground hover:text-foreground -mx-1 px-2"
+              >
+                Move
                 <ChevronDown className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 max-h-72 overflow-y-auto">
-              <DropdownMenuLabel>Move to stage</DropdownMenuLabel>
-              {Object.entries(STAGE_LABELS).map(([stageValue, label]) => {
-                if (stageValue === job.stage) return null;
-                if (user?.role === "tech" && stageValue !== "installed") return null;
+            <DropdownMenuContent align="start" className="w-60 max-h-80 overflow-y-auto">
+              {MOVE_GROUPS.map((group, gi) => {
+                const items = group.stages.filter(stage => {
+                  if (stage === job.stage) return false;
+                  if (user?.role === "tech" && stage !== "installed") return false;
+                  return true;
+                });
+                if (items.length === 0) return null;
                 return (
-                  <DropdownMenuItem key={stageValue} onClick={() => setMoveStageIntent(stageValue as JobStage)}>
-                    {label}
-                  </DropdownMenuItem>
+                  <React.Fragment key={group.label}>
+                    {gi > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
+                      {group.label}
+                    </DropdownMenuLabel>
+                    {items.map(stage => (
+                      <DropdownMenuItem key={stage} onClick={() => setMoveStageIntent(stage as JobStage)}>
+                        {STAGE_LABELS[stage] || stage}
+                      </DropdownMenuItem>
+                    ))}
+                  </React.Fragment>
                 );
               })}
             </DropdownMenuContent>
@@ -139,25 +119,5 @@ export default function JobCard({ job }: { job: Job }) {
         />
       )}
     </>
-  );
-}
-
-function ToggleItem({ id, label, checked, onToggle, disabled }: { id: string, label: string, checked: boolean, onToggle: () => void, disabled: boolean }) {
-  return (
-    <div className="flex items-center space-x-2">
-      <Checkbox
-        id={id}
-        checked={checked}
-        onCheckedChange={onToggle}
-        disabled={disabled}
-        className="w-3.5 h-3.5"
-      />
-      <Label
-        htmlFor={id}
-        className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground cursor-pointer"
-      >
-        {label}
-      </Label>
-    </div>
   );
 }
