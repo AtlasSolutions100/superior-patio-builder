@@ -1,0 +1,41 @@
+PROJECT: Superior Patio Covers – Job Status Board
+PHASE: 1 — Post-Sold operational Kanban + chronological sort
+
+WHAT & WHY
+Justin’s current Job Tracking Google Sheet is the only place he and Blair can see where every job sits after it is Sold. The sheet is painful to keep updated and does not automatically keep the soonest-install jobs at the top of each stage. We are building a clean board that uses Justin’s exact stages and enforces an Estimated Installation Date so chronological priority is automatic.
+
+DONE LOOKS LIKE
+- Kanban columns exactly matching the post-Sold stages Justin drew (Invoiced with QuickBooks → … → Google Review Asked for). A secondary “Sales Pipeline” view for New Lead → Sold is nice-to-have but not required for Done.
+- When a job is moved to “Sold”, the system requires an Estimated Installation Date.
+- Inside every column the cards are sorted by Estimated Installation Date ascending (soonest install on top).
+- Card shows: Customer Name, City, Type of Cover, Contract Amount, Source, Est. Install Date, current stage, last note.
+- Simple toggles or stage moves for: Invoiced with QB, Deposit Paid, Ordered, Received.
+- List view with the same data + filters (stage, city, type of cover, date range).
+- One-click CSV export of the operational columns.
+- Roles: Justin & Blair = full edit; Install Techs = view + ability to move to Installed / add note; others = view only.
+- Seeded with 12–15 real jobs taken from the provided Job Tracking sheet so it feels familiar on day one.
+
+CONSTRAINTS
+- No integrations with OneClick or QuickBooks in this phase.
+- Do not try to replicate the full payment/check reconciliation columns on the right side of the sheet.
+- Desktop-first, dense “spreadsheet-like” density. Mobile just needs to be readable.
+- Auth: simple email/password or magic link.
+
+OUT OF SCOPE
+- Automatic lead import
+- Writing anything back to OneClick or QuickBooks
+- Photo uploads, inventory quantities, time tracking, notifications beyond the board itself
+- Complex reporting or charts
+
+BUILD ORDER
+1. Auth + Job model with the exact fields listed above + Estimated Installation Date.
+2. Seed 12–15 real jobs from the sheet (anonymize if needed).
+3. Kanban view with Justin’s exact stage names + forced sort by Est. Install Date.
+4. Required Est. Install Date validation when moving to Sold.
+5. List view + basic filters.
+6. CSV export.
+7. Simple role-based permissions.
+8. Polish empty states and note field.
+
+AFTER EACH STEP
+Restate the goal and the plan for the next step, then wait for explicit approval before writing more code.
