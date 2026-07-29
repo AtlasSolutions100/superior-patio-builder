@@ -318,10 +318,20 @@ function ListRow({ job, role }: { job: Job; role?: string }) {
     field: keyof Pick<Job, "invoicedWithQb" | "depositPaid" | "materialOrdered" | "materialReceived">,
   ) => {
     if (!canEdit) return;
+    const listKey = getListJobsQueryKey();
+    const newValue = !job[field];
+    // Optimistic update: flip the toggle in all cached job lists immediately.
+    const previous = queryClient.getQueriesData<Job[]>({ queryKey: listKey.slice(0, 1) });
+    queryClient.setQueriesData<Job[]>({ queryKey: listKey.slice(0, 1) }, (old) =>
+      old?.map((j) => (j.id === job.id ? { ...j, [field]: newValue } : j)),
+    );
     updateJob.mutate(
-      { id: job.id, data: { [field]: !job[field] } },
+      { id: job.id, data: { [field]: newValue } },
       {
-        onSuccess: () => {
+        onError: () => {
+          previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
+        },
+        onSettled: () => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetBoardSummaryQueryKey() });
         },
