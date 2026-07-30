@@ -1,0 +1,66 @@
+Full System Stability & QA Pass
+
+What & Why
+We need to thoroughly test the current application and make it solid before calling Phase 1 complete. Please systematically test the entire product, find bugs, and fix anything that is broken or unreliable. Priority is stability, correctness, and predictability over new features.
+
+Please test and verify the following areas:
+
+### 1. Authentication
+- Demo Login as Admin works with one click
+- Demo Login as Tech works
+- Normal email/password login still works
+- Sessions stay valid (no random 401s)
+- Logging out and back in works cleanly
+
+### 2. Roles & Permissions
+- Admin can move jobs to any stage
+- Tech can only move jobs to “Installed” and can edit notes
+- Viewer is read-only
+- Non-admins cannot access the Team page
+- Role changes on the Team page take effect correctly
+
+### 3. Kanban Board
+- All jobs appear in the correct grouped columns
+- Jobs are sorted by Estimated Install Date (soonest on top) in every column
+- Jobs with no install date appear at the bottom
+- Drag-and-drop works for Admins
+- Dragging a job into “Sold” forces the Estimated Install Date dialog
+- Techs cannot drag jobs into restricted stages
+- Sticky columns behave correctly while dragging
+- No visual overlapping or broken layout
+
+### 4. List View
+- Shows the same jobs as the Kanban
+- Sorting by Estimated Install Date works
+- Filters work correctly
+- Inline stage changes respect role permissions
+- CSV export downloads the correct data
+
+### 5. Team Management
+- Admins can change roles
+- Admins can add/invite a new team member by email + role
+- Pending invites show correctly
+- A user signing in with an invited email receives the correct role
+
+### 6. Data & Edge Cases
+- Creating a new job works
+- Editing job details works
+- Moving jobs between grouped columns keeps the correct underlying stage
+- Refreshing the page keeps data consistent
+- Empty states and error states are clear (never show “0 jobs” when there is an error)
+
+### 7. Overall Stability
+- No console errors during normal use
+- No broken UI states
+- No silent failures
+
+Instructions:
+1. Test each area above methodically
+2. Fix any bugs you find
+3. After fixes, re-test the affected area
+4. At the end, give me a clear summary of:
+   - What passed
+   - What was broken and fixed
+   - What still needs attention (if anything)
+
+Do not add new features. Focus only on making the current system solid and reliable.
