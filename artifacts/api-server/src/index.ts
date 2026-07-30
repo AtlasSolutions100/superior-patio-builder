@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { ensureDemoAccounts } from "./lib/demoAccounts";
+import { runStartupMigrations } from "./lib/migrations";
 
 const rawPort = process.env["PORT"];
 
@@ -23,6 +24,10 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Converge the schema (idempotent) so new environments get job_notes +
+  // the legacy-note backfill without a manual push.
+  runStartupMigrations().catch(() => process.exit(1));
 
   // Dev-only: self-heal the demo accounts so the sign-in page's demo
   // buttons always work (no-op with a production Clerk key).

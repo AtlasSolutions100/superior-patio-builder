@@ -67,8 +67,8 @@ export default function JobCard({
             {STAGE_LABELS[job.stage] || job.stage}
           </div>
           <h4
-            className={`font-medium text-sm text-foreground truncate ${canTechEdit ? "cursor-pointer hover:text-primary" : ""}`}
-            onClick={() => canTechEdit && setIsEditOpen(true)}
+            className="font-medium text-sm text-foreground truncate cursor-pointer hover:text-primary"
+            onClick={() => setIsEditOpen(true)}
           >
             {job.customerName}
           </h4>

@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { STAGE_LABELS } from "@/lib/utils";
 import { toast } from "sonner";
+import { JobNotes } from "./job-notes";
 
 const jobSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
@@ -48,6 +49,8 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
   const isEditing = !!job;
   const isAdmin = user?.role === "admin";
   const isTech = user?.role === "tech";
+  // Techs and viewers can't edit job fields; the notes section governs its own permissions.
+  const fieldsDisabled = !isAdmin;
 
   const form = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
@@ -91,27 +94,19 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
   }, [job, open, form]);
 
   const onSubmit = (data: JobFormData) => {
-    if (isTech && !isAdmin) {
-      // Techs can only update notes
-      updateJob.mutate({
-        id: job!.id,
-        data: { lastNote: data.lastNote }
-      }, {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
-          toast.success("Note updated");
-          onOpenChange(false);
-        },
-        onError: () => toast.error("Failed to update note")
-      });
+    if (!isAdmin) {
+      // Techs/viewers manage notes through the Notes section; nothing else to save.
+      onOpenChange(false);
       return;
     }
 
     if (isEditing) {
+      // Notes are managed in the Notes section, not through the job form.
+      const { lastNote: _omit, ...fields } = data;
       updateJob.mutate({
         id: job.id,
         data: {
-          ...data,
+          ...fields,
           contractAmount: data.contractAmount || null,
           estimatedInstallDate: data.estimatedInstallDate || null,
         } as JobUpdate
@@ -192,38 +187,38 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="customerName">Customer Name <span className="text-destructive">*</span></Label>
-              <Input id="customerName" {...form.register("customerName")} disabled={isTech && !isAdmin} />
+              <Input id="customerName" {...form.register("customerName")} disabled={fieldsDisabled} />
               {form.formState.errors.customerName && <p className="text-xs text-destructive">{form.formState.errors.customerName.message}</p>}
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...form.register("phone")} disabled={isTech && !isAdmin} />
+              <Input id="phone" {...form.register("phone")} disabled={fieldsDisabled} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
-              <Input id="address" {...form.register("address")} disabled={isTech && !isAdmin} />
+              <Input id="address" {...form.register("address")} disabled={fieldsDisabled} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
-              <Input id="city" {...form.register("city")} disabled={isTech && !isAdmin} />
+              <Input id="city" {...form.register("city")} disabled={fieldsDisabled} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="coverType">Cover Type</Label>
-              <Input id="coverType" {...form.register("coverType")} disabled={isTech && !isAdmin} />
+              <Input id="coverType" {...form.register("coverType")} disabled={fieldsDisabled} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="contractAmount">Contract Amount ($)</Label>
-              <Input id="contractAmount" type="number" step="0.01" {...form.register("contractAmount")} disabled={isTech && !isAdmin} />
+              <Input id="contractAmount" type="number" step="0.01" {...form.register("contractAmount")} disabled={fieldsDisabled} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="estimatedInstallDate">Est. Install Date</Label>
-              <Input id="estimatedInstallDate" type="date" {...form.register("estimatedInstallDate")} disabled={isTech && !isAdmin} />
+              <Input id="estimatedInstallDate" type="date" {...form.register("estimatedInstallDate")} disabled={fieldsDisabled} />
               {form.formState.errors.estimatedInstallDate && <p className="text-xs text-destructive">{form.formState.errors.estimatedInstallDate.message}</p>}
             </div>
 
@@ -234,7 +229,7 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
                   id="stage" 
                   {...form.register("stage")}
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  disabled={isTech && !isAdmin}
+                  disabled={fieldsDisabled}
                 >
                   {Object.entries(STAGE_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>{label}</option>
@@ -244,15 +239,22 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="lastNote">Notes</Label>
-            <Textarea 
-              id="lastNote" 
-              {...form.register("lastNote")} 
-              placeholder="Add details, site notes, etc..."
-              className="min-h-[100px]"
-            />
-          </div>
+          {isEditing ? (
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <JobNotes jobId={job.id} archived={!!job.archivedAt} />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="lastNote">Initial Note</Label>
+              <Textarea 
+                id="lastNote" 
+                {...form.register("lastNote")} 
+                placeholder="Add details, site notes, etc..."
+                className="min-h-[100px]"
+              />
+            </div>
+          )}
 
           <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
             <div className="flex items-center gap-2">
@@ -268,10 +270,14 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Saving..." : "Save Job"}
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {isAdmin ? "Cancel" : "Close"}
               </Button>
+              {isAdmin && (
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Saving..." : "Save Job"}
+                </Button>
+              )}
             </div>
           </DialogFooter>
         </form>

@@ -559,6 +559,73 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
+  /jobs/{id}/notes:
+    get:
+      operationId: listJobNotes
+      tags: [jobs]
+      summary: List a job's note history, newest first
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notes ordered newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobNote"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    post:
+      operationId: addJobNote
+      tags: [jobs]
+      summary: Add a note to a job (admins and techs; viewers read-only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobNoteInput"
+      responses:
+        "201":
+          description: Created note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobNote"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
   /jobs/export:
     get:
       operationId: exportJobsCsv
@@ -828,6 +895,28 @@ components:
           type: boolean
         materialReceived:
           type: boolean
+    JobNote:
+      type: object
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: integer
+        authorName:
+          type: string
+        text:
+          type: string
+        createdAt:
+          type: string
+      required: [id, jobId, authorName, text, createdAt]
+    JobNoteInput:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required: [text]
     JobStageMove:
       type: object
       properties:

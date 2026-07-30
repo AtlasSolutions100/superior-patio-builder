@@ -27,6 +27,8 @@ import type {
   HealthStatus,
   Job,
   JobInput,
+  JobNote,
+  JobNoteInput,
   JobStageMove,
   JobUpdate,
   ListJobsParams,
@@ -1388,6 +1390,155 @@ export const useUnarchiveJob = <TError = ErrorType<ErrorMessage>,
         TContext
       > => {
       return useMutation(getUnarchiveJobMutationOptions(options));
+    }
+
+export const getListJobNotesUrl = (id: number,) => {
+
+
+
+
+  return `/api/jobs/${id}/notes`
+}
+
+/**
+ * @summary List a job's note history, newest first
+ */
+export const listJobNotes = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<JobNote[]> => {
+
+  return customFetch<JobNote[]>(getListJobNotesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListJobNotesQueryKey = (id: number,) => {
+    return [
+    `/api/jobs/${id}/notes`
+    ] as const;
+    }
+
+
+export const getListJobNotesQueryOptions = <TData = Awaited<ReturnType<typeof listJobNotes>>, TError = ErrorType<ErrorMessage>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listJobNotes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListJobNotesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listJobNotes>>> = ({ signal }) => listJobNotes(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listJobNotes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListJobNotesQueryResult = NonNullable<Awaited<ReturnType<typeof listJobNotes>>>
+export type ListJobNotesQueryError = ErrorType<ErrorMessage>
+
+
+/**
+ * @summary List a job's note history, newest first
+ */
+
+export function useListJobNotes<TData = Awaited<ReturnType<typeof listJobNotes>>, TError = ErrorType<ErrorMessage>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listJobNotes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListJobNotesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAddJobNoteUrl = (id: number,) => {
+
+
+
+
+  return `/api/jobs/${id}/notes`
+}
+
+/**
+ * @summary Add a note to a job (admins and techs; viewers read-only)
+ */
+export const addJobNote = async (id: number,
+    jobNoteInput: JobNoteInput, options?: Parameters<typeof customFetch>[1]): Promise<JobNote> => {
+
+  return customFetch<JobNote>(getAddJobNoteUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(jobNoteInput)
+  }
+);}
+
+
+
+
+
+export const getAddJobNoteMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addJobNote>>, TError,{id: number;data: BodyType<JobNoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addJobNote>>, TError,{id: number;data: BodyType<JobNoteInput>}, TContext> => {
+
+const mutationKey = ['addJobNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addJobNote>>, {id: number;data: BodyType<JobNoteInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addJobNote(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddJobNoteMutationResult = NonNullable<Awaited<ReturnType<typeof addJobNote>>>
+    export type AddJobNoteMutationBody = BodyType<JobNoteInput>
+    export type AddJobNoteMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Add a note to a job (admins and techs; viewers read-only)
+ */
+export const useAddJobNote = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addJobNote>>, TError,{id: number;data: BodyType<JobNoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addJobNote>>,
+        TError,
+        {id: number;data: BodyType<JobNoteInput>},
+        TContext
+      > => {
+      return useMutation(getAddJobNoteMutationOptions(options));
     }
 
 export const getExportJobsCsvUrl = () => {

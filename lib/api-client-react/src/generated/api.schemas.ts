@@ -193,6 +193,22 @@ export interface JobUpdate {
   materialReceived?: boolean;
 }
 
+export interface JobNote {
+  id: number;
+  jobId: number;
+  authorName: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface JobNoteInput {
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  text: string;
+}
+
 export interface JobStageMove {
   stage: JobStage;
   /**

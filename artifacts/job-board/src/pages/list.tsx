@@ -625,16 +625,14 @@ function ListRow({ job, role, archivedView }: { job: Job; role?: string; archive
             </button>
           ) : (
             <>
-              {canTechEdit && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditOpen(true)}
-                  className="text-muted-foreground hover:text-primary transition-colors p-1"
-                  title="Edit job"
-                >
-                  <PenSquare className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(true)}
+                className="text-muted-foreground hover:text-primary transition-colors p-1"
+                title={canTechEdit ? "Edit job" : "View job & notes"}
+              >
+                <PenSquare className="w-3.5 h-3.5" />
+              </button>
               {canEdit && (
                 <button
                   type="button"

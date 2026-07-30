@@ -427,6 +427,47 @@ export const UnarchiveJobResponse = zod.object({
 
 
 /**
+ * @summary List a job's note history, newest first
+ */
+export const ListJobNotesParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListJobNotesResponseItem = zod.object({
+  "id": zod.int(),
+  "jobId": zod.int(),
+  "authorName": zod.string(),
+  "text": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListJobNotesResponse = zod.array(ListJobNotesResponseItem)
+
+
+/**
+ * @summary Add a note to a job (admins and techs; viewers read-only)
+ */
+export const AddJobNoteParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const addJobNoteBodyTextMax = 2000;
+
+
+
+export const AddJobNoteBody = zod.object({
+  "text": zod.string().min(1).max(addJobNoteBodyTextMax)
+})
+
+export const AddJobNoteResponse = zod.object({
+  "id": zod.int(),
+  "jobId": zod.int(),
+  "authorName": zod.string(),
+  "text": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary Export operational columns as CSV
  */
 export const ExportJobsCsvResponse = zod.unknown()

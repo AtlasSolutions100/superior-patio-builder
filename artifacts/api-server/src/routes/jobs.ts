@@ -1,11 +1,13 @@
 import { Router, type IRouter } from "express";
-import { eq, and, ilike, gte, lte, or, sql, asc, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, ilike, gte, lte, or, sql, asc, desc, isNull, isNotNull } from "drizzle-orm";
 import {
   db,
   jobsTable,
+  jobNotesTable,
   POST_SOLD_STAGES,
   JOB_STAGES,
   type Job,
+  type JobNote,
   type JobStage,
 } from "@workspace/db";
 import {
@@ -23,6 +25,11 @@ import {
   MoveJobStageBody,
   MoveJobStageResponse,
   GetBoardSummaryResponse,
+  ListJobNotesParams,
+  ListJobNotesResponse,
+  AddJobNoteParams,
+  AddJobNoteBody,
+  AddJobNoteResponse,
 } from "@workspace/api-zod";
 import { requireUser, requireAdmin } from "../middlewares/auth";
 
@@ -112,6 +119,17 @@ router.post("/jobs", requireUser, requireAdmin, async (req, res): Promise<void> 
         data.contractAmount == null ? null : String(data.contractAmount),
     })
     .returning();
+
+  if (data.lastNote && data.lastNote.trim()) {
+    // Start the job's note history with the initial note.
+    const u = req.appUser!;
+    await db.insert(jobNotesTable).values({
+      jobId: job.id,
+      authorUserId: u.id,
+      authorName: u.name || u.username || u.email || "Unknown",
+      text: data.lastNote.trim(),
+    });
+  }
 
   res.status(201).json(CreateJobResponse.parse(toApi(job)));
 });
@@ -271,20 +289,39 @@ router.patch("/jobs/:id", requireUser, async (req, res): Promise<void> => {
     return;
   }
 
-  const { contractAmount, ...rest } = data;
-  const [job] = await db
-    .update(jobsTable)
-    .set({
-      ...rest,
-      ...(contractAmount !== undefined
-        ? {
-            contractAmount:
-              contractAmount == null ? null : String(contractAmount),
-          }
-        : {}),
-    })
-    .where(eq(jobsTable.id, params.data.id))
-    .returning();
+  // lastNote is never written directly — a changed note goes through the
+  // history (note insert + snapshot sync in one transaction) so the two
+  // can't diverge. Blank/null note updates are ignored.
+  const { contractAmount, lastNote, ...rest } = data;
+  const newNote = lastNote?.trim();
+  const appendNote = !!newNote && newNote !== (existing.lastNote ?? "").trim();
+  const u = req.appUser!;
+
+  const job = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(jobsTable)
+      .set({
+        ...rest,
+        ...(contractAmount !== undefined
+          ? {
+              contractAmount:
+                contractAmount == null ? null : String(contractAmount),
+            }
+          : {}),
+        ...(appendNote ? { lastNote: newNote } : {}),
+      })
+      .where(eq(jobsTable.id, params.data.id))
+      .returning();
+    if (appendNote) {
+      await tx.insert(jobNotesTable).values({
+        jobId: updated.id,
+        authorUserId: u.id,
+        authorName: u.name || u.username || u.email || "Unknown",
+        text: newNote!,
+      });
+    }
+    return updated;
+  });
 
   res.json(UpdateJobResponse.parse(toApi(job)));
 });
@@ -368,6 +405,102 @@ router.post(
     res.json(GetJobResponse.parse(toApi(job)));
   },
 );
+
+function noteToApi(note: JobNote) {
+  return {
+    id: note.id,
+    jobId: note.jobId,
+    authorName: note.authorName,
+    text: note.text,
+    createdAt: note.createdAt.toISOString(),
+  };
+}
+
+router.get("/jobs/:id/notes", requireUser, async (req, res): Promise<void> => {
+  const params = ListJobNotesParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [job] = await db
+    .select({ id: jobsTable.id })
+    .from(jobsTable)
+    .where(eq(jobsTable.id, params.data.id));
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+
+  const notes = await db
+    .select()
+    .from(jobNotesTable)
+    .where(eq(jobNotesTable.jobId, params.data.id))
+    .orderBy(desc(jobNotesTable.createdAt), desc(jobNotesTable.id));
+
+  res.json(ListJobNotesResponse.parse(notes.map(noteToApi)));
+});
+
+router.post("/jobs/:id/notes", requireUser, async (req, res): Promise<void> => {
+  const params = AddJobNoteParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const body = AddJobNoteBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+  const text = body.data.text.trim();
+  if (!text) {
+    res.status(400).json({ error: "Note cannot be empty" });
+    return;
+  }
+
+  const user = req.appUser!;
+  if (user.role === "viewer") {
+    res.status(403).json({ error: "View-only access" });
+    return;
+  }
+
+  const [job] = await db
+    .select()
+    .from(jobsTable)
+    .where(eq(jobsTable.id, params.data.id));
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+  if (job.archivedAt) {
+    res
+      .status(409)
+      .json({ error: "This job is archived — restore it before adding notes" });
+    return;
+  }
+
+  const authorName = user.name || user.username || user.email || "Unknown";
+
+  // Insert + snapshot sync are atomic so history and lastNote never diverge.
+  const note = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(jobNotesTable)
+      .values({
+        jobId: job.id,
+        authorUserId: user.id,
+        authorName,
+        text,
+      })
+      .returning();
+    await tx
+      .update(jobsTable)
+      .set({ lastNote: text })
+      .where(eq(jobsTable.id, job.id));
+    return created;
+  });
+
+  res.status(201).json(AddJobNoteResponse.parse(noteToApi(note)));
+});
 
 router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => {
   const params = MoveJobStageParams.safeParse(req.params);

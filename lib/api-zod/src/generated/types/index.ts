@@ -13,6 +13,8 @@ export * from './errorMessage';
 export * from './healthStatus';
 export * from './job';
 export * from './jobInput';
+export * from './jobNote';
+export * from './jobNoteInput';
 export * from './jobStage';
 export * from './jobStageMove';
 export * from './jobUpdate';
