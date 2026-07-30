@@ -13,7 +13,9 @@ export const DEMO_ROLE_BY_EMAIL: Record<string, AppUser["role"]> = {
   "viewer@demo.com": "viewer",
 };
 
-const DEMO_PASSWORD = "password123";
+// Must not appear in public breach lists: Clerk rejects pwned passwords at
+// sign-in time (form_password_pwned) even when creation skips the check.
+const DEMO_PASSWORD = "SuperiorPatio-Demo-2026";
 
 const DEMO_NAME_BY_EMAIL: Record<string, { firstName: string; lastName: string }> = {
   "admin@demo.com": { firstName: "Demo", lastName: "Admin" },
@@ -27,11 +29,33 @@ const DEMO_NAME_BY_EMAIL: Record<string, { firstName: string; lastName: string }
  * removal protection use the same gate.
  */
 export function isDemoEnvironment(): boolean {
+  // Hard deny in production regardless of key shape, plus the pk_test gate.
+  if (process.env.NODE_ENV === "production") return false;
   return (process.env.CLERK_PUBLISHABLE_KEY ?? "").startsWith("pk_test_");
 }
 
 export function isDemoEmail(email: string | null | undefined): boolean {
   return !!email && email.toLowerCase() in DEMO_ROLE_BY_EMAIL;
+}
+
+/**
+ * Dev-only: mint a short-lived Clerk sign-in token for a demo account so the
+ * sign-in page's one-click demo buttons can use the ticket strategy. Ticket
+ * sign-ins bypass Clerk's Client Trust (which forces an email code on
+ * password sign-ins from new devices) — exactly what a demo button needs.
+ */
+export async function createDemoSignInToken(email: string): Promise<string | null> {
+  if (!isDemoEnvironment() || !isDemoEmail(email)) return null;
+  const { data: users } = await clerkClient.users.getUserList({
+    emailAddress: [email.toLowerCase()],
+  });
+  const user = users[0];
+  if (!user) return null;
+  const token = await clerkClient.signInTokens.createSignInToken({
+    userId: user.id,
+    expiresInSeconds: 60,
+  });
+  return token.token;
 }
 
 /**
@@ -60,6 +84,20 @@ export async function ensureDemoAccounts(): Promise<void> {
           skipPasswordChecks: true,
         });
         logger.info({ email }, "Created demo Clerk user");
+      } else {
+        // Self-heal the password too: if it drifted (or an old pwned password
+        // like "password123" is set), reset it to the current demo password.
+        const ok = await clerkClient.users
+          .verifyPassword({ userId: clerkUser.id, password: DEMO_PASSWORD })
+          .then((r) => r.verified)
+          .catch(() => false);
+        if (!ok) {
+          await clerkClient.users.updateUser(clerkUser.id, {
+            password: DEMO_PASSWORD,
+            skipPasswordChecks: true,
+          });
+          logger.info({ email }, "Reset demo Clerk user password");
+        }
       }
 
       const name =

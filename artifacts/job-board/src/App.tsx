@@ -92,7 +92,6 @@ const DEMO_ACCOUNTS = [
   { label: "Demo Login as Tech", email: "tech@demo.com" },
   { label: "Demo Login as Viewer", email: "viewer@demo.com" },
 ] as const;
-const DEMO_PASSWORD = "password123";
 
 function DemoLoginButtons() {
   const { signIn } = useSignIn();
@@ -107,10 +106,19 @@ function DemoLoginButtons() {
     setBusyEmail(email);
     setError(null);
     try {
-      const { error: signInError } = await signIn.password({
-        identifier: email,
-        password: DEMO_PASSWORD,
+      // Ask the API for a short-lived sign-in token (ticket). Ticket sign-ins
+      // bypass Clerk's Client Trust device check, keeping this one-click.
+      const resp = await fetch(`${import.meta.env.BASE_URL}api/demo-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
+      if (!resp.ok) {
+        setError("Demo sign-in failed. Try the form above.");
+        return;
+      }
+      const { token } = (await resp.json()) as { token: string };
+      const { error: signInError } = await signIn.ticket({ ticket: token });
       if (signInError) {
         setError("Demo sign-in failed. Try the form above.");
         return;
