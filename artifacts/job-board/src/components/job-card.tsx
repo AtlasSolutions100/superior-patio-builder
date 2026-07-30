@@ -20,7 +20,19 @@ const MOVE_GROUPS: { label: string; stages: string[] }[] = [
   ...STAGE_GROUPS.map(g => ({ label: g.label, stages: g.stages })),
 ];
 
-export default function JobCard({ job }: { job: Job }) {
+export default function JobCard({
+  job,
+  draggable = false,
+  isDragging = false,
+  onDragStart,
+  onDragEnd,
+}: {
+  job: Job;
+  draggable?: boolean;
+  isDragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+}) {
   const { data: user } = useGetCurrentUser();
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [moveStageIntent, setMoveStageIntent] = React.useState<JobStage | null>(null);
@@ -37,7 +49,19 @@ export default function JobCard({ job }: { job: Job }) {
 
   return (
     <>
-      <Card className="flex flex-col bg-card rounded-xl border-border/70 p-4 gap-3 shadow-none">
+      <Card
+        draggable={draggable}
+        onDragStart={e => {
+          if (!draggable) return;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", String(job.id));
+          onDragStart?.();
+        }}
+        onDragEnd={() => onDragEnd?.()}
+        className={`flex flex-col bg-card rounded-xl border-border/70 p-4 gap-3 shadow-none ${
+          draggable ? "cursor-grab active:cursor-grabbing" : ""
+        } ${isDragging ? "opacity-40" : ""}`}
+      >
         <div className="min-w-0">
           <div className="text-[11px] text-muted-foreground/80 mb-1 truncate">
             {STAGE_LABELS[job.stage] || job.stage}
