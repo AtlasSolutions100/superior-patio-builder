@@ -1248,6 +1248,148 @@ export const useMoveJobStage = <TError = ErrorType<ErrorMessage>,
       return useMutation(getMoveJobStageMutationOptions(options));
     }
 
+export const getArchiveJobUrl = (id: number,) => {
+
+
+
+
+  return `/api/jobs/${id}/archive`
+}
+
+/**
+ * @summary Archive a job so it leaves the main board and list (full-access only)
+ */
+export const archiveJob = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Job> => {
+
+  return customFetch<Job>(getArchiveJobUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveJobMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveJob>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof archiveJob>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['archiveJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveJob>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  archiveJob(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveJobMutationResult = NonNullable<Awaited<ReturnType<typeof archiveJob>>>
+
+    export type ArchiveJobMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Archive a job so it leaves the main board and list (full-access only)
+ */
+export const useArchiveJob = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveJob>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof archiveJob>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getArchiveJobMutationOptions(options));
+    }
+
+export const getUnarchiveJobUrl = (id: number,) => {
+
+
+
+
+  return `/api/jobs/${id}/unarchive`
+}
+
+/**
+ * @summary Restore an archived job to its previous stage (full-access only)
+ */
+export const unarchiveJob = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Job> => {
+
+  return customFetch<Job>(getUnarchiveJobUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnarchiveJobMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unarchiveJob>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unarchiveJob>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['unarchiveJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unarchiveJob>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unarchiveJob(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnarchiveJobMutationResult = NonNullable<Awaited<ReturnType<typeof unarchiveJob>>>
+
+    export type UnarchiveJobMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Restore an archived job to its previous stage (full-access only)
+ */
+export const useUnarchiveJob = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unarchiveJob>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unarchiveJob>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getUnarchiveJobMutationOptions(options));
+    }
+
 export const getExportJobsCsvUrl = () => {
 
 

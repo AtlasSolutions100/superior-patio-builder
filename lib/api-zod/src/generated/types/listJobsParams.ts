@@ -23,4 +23,8 @@ dateTo?: string;
  * Case-insensitive match on customer name, address, or city
  */
 search?: string;
+/**
+ * When true, return only archived jobs. Default returns only active jobs.
+ */
+archived?: boolean;
 };

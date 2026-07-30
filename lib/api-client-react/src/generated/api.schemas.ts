@@ -140,6 +140,11 @@ export interface Job {
   depositPaid: boolean;
   materialOrdered: boolean;
   materialReceived: boolean;
+  /**
+     * When set, the job is archived and hidden from the main views.
+     * @nullable
+     */
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -228,5 +233,9 @@ dateTo?: string;
  * Case-insensitive match on customer name, address, or city
  */
 search?: string;
+/**
+ * When true, return only archived jobs. Default returns only active jobs.
+ */
+archived?: boolean;
 };
 

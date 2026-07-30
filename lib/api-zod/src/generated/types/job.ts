@@ -34,6 +34,11 @@ export interface Job {
   depositPaid: boolean;
   materialOrdered: boolean;
   materialReceived: boolean;
+  /**
+     * When set, the job is archived and hidden from the main views.
+     * @nullable
+     */
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

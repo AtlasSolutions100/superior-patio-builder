@@ -53,6 +53,8 @@ export const jobsTable = pgTable("jobs", {
   depositPaid: boolean("deposit_paid").notNull().default(false),
   materialOrdered: boolean("material_ordered").notNull().default(false),
   materialReceived: boolean("material_received").notNull().default(false),
+  // Soft archive: non-null = hidden from the main board/list (never deleted).
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

@@ -175,7 +175,8 @@ export const ListJobsQueryParams = zod.object({
   "coverType": zod.coerce.string().optional(),
   "dateFrom": zod.coerce.string().optional().describe('Filter by estimated install date on or after (YYYY-MM-DD)'),
   "dateTo": zod.coerce.string().optional().describe('Filter by estimated install date on or before (YYYY-MM-DD)'),
-  "search": zod.coerce.string().optional().describe('Case-insensitive match on customer name, address, or city')
+  "search": zod.coerce.string().optional().describe('Case-insensitive match on customer name, address, or city'),
+  "archived": zod.coerce.boolean().optional().describe('When true, return only archived jobs. Default returns only active jobs.')
 })
 
 export const ListJobsResponseItem = zod.object({
@@ -194,6 +195,7 @@ export const ListJobsResponseItem = zod.object({
   "depositPaid": zod.boolean(),
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -239,6 +241,7 @@ export const CreateJobResponse = zod.object({
   "depositPaid": zod.boolean(),
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -267,6 +270,7 @@ export const GetJobResponse = zod.object({
   "depositPaid": zod.boolean(),
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -314,6 +318,7 @@ export const UpdateJobResponse = zod.object({
   "depositPaid": zod.boolean(),
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -357,6 +362,65 @@ export const MoveJobStageResponse = zod.object({
   "depositPaid": zod.boolean(),
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Archive a job so it leaves the main board and list (full-access only)
+ */
+export const ArchiveJobParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ArchiveJobResponse = zod.object({
+  "id": zod.int(),
+  "customerName": zod.string(),
+  "phone": zod.string().nullable(),
+  "address": zod.string().nullable(),
+  "city": zod.string().nullable(),
+  "coverType": zod.string().nullable(),
+  "contractAmount": zod.number().nullable(),
+  "source": zod.string().nullable(),
+  "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
+  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "lastNote": zod.string().nullable(),
+  "invoicedWithQb": zod.boolean(),
+  "depositPaid": zod.boolean(),
+  "materialOrdered": zod.boolean(),
+  "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Restore an archived job to its previous stage (full-access only)
+ */
+export const UnarchiveJobParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UnarchiveJobResponse = zod.object({
+  "id": zod.int(),
+  "customerName": zod.string(),
+  "phone": zod.string().nullable(),
+  "address": zod.string().nullable(),
+  "city": zod.string().nullable(),
+  "coverType": zod.string().nullable(),
+  "contractAmount": zod.number().nullable(),
+  "source": zod.string().nullable(),
+  "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
+  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "lastNote": zod.string().nullable(),
+  "invoicedWithQb": zod.boolean(),
+  "depositPaid": zod.boolean(),
+  "materialOrdered": zod.boolean(),
+  "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -396,6 +460,7 @@ export const GetBoardSummaryResponse = zod.object({
   "depositPaid": zod.boolean(),
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })).describe('Next 5 jobs by soonest estimated install date (not yet installed)')

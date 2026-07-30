@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Job, JobStage, JobInput, JobUpdate, useCreateJob, useUpdateJob, useDeleteJob, getListJobsQueryKey, getGetBoardSummaryQueryKey, useGetCurrentUser } from "@workspace/api-client-react";
+import { Job, JobStage, JobInput, JobUpdate, useCreateJob, useUpdateJob, useDeleteJob, useArchiveJob, getListJobsQueryKey, getGetBoardSummaryQueryKey, useGetCurrentUser } from "@workspace/api-client-react";
 import { queryClient } from "@/lib/query-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
   const createJob = useCreateJob();
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
+  const archiveJob = useArchiveJob();
   
   const isEditing = !!job;
   const isAdmin = user?.role === "admin";
@@ -157,7 +158,27 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
     });
   };
 
-  const isPending = createJob.isPending || updateJob.isPending || deleteJob.isPending;
+  const handleArchive = () => {
+    if (
+      !job ||
+      !window.confirm(
+        `Archive "${job.customerName}"? The job leaves the board and job list but is kept safe — you can restore it any time from the Archived view.`,
+      )
+    )
+      return;
+
+    archiveJob.mutate({ id: job.id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetBoardSummaryQueryKey() });
+        toast.success("Job archived — find it under Archived on the Job List");
+        onOpenChange(false);
+      },
+      onError: (err: any) => toast.error(err?.data?.error || "Failed to archive job")
+    });
+  };
+
+  const isPending = createJob.isPending || updateJob.isPending || deleteJob.isPending || archiveJob.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -234,7 +255,12 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
           </div>
 
           <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
-            <div>
+            <div className="flex items-center gap-2">
+              {isEditing && isAdmin && !job.archivedAt && (
+                <Button type="button" variant="outline" onClick={handleArchive} disabled={isPending}>
+                  Archive Job
+                </Button>
+              )}
               {isEditing && isAdmin && (
                 <Button type="button" variant="destructive" onClick={handleDelete} disabled={isPending}>
                   Delete Job

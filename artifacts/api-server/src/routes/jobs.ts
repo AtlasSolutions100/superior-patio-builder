@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, ilike, gte, lte, or, sql, asc } from "drizzle-orm";
+import { eq, and, ilike, gte, lte, or, sql, asc, isNull, isNotNull } from "drizzle-orm";
 import {
   db,
   jobsTable,
@@ -33,6 +33,7 @@ function toApi(job: Job) {
     ...job,
     contractAmount:
       job.contractAmount == null ? null : Number(job.contractAmount),
+    archivedAt: job.archivedAt == null ? null : job.archivedAt.toISOString(),
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   };
@@ -54,9 +55,13 @@ router.get("/jobs", requireUser, async (req, res): Promise<void> => {
     res.status(400).json({ error: query.error.message });
     return;
   }
-  const { stage, city, coverType, dateFrom, dateTo, search } = query.data;
+  const { stage, city, coverType, dateFrom, dateTo, search, archived } =
+    query.data;
 
-  const conditions = [];
+  // Default view is active jobs only; archived=true shows only archived jobs.
+  const conditions = [
+    archived ? isNotNull(jobsTable.archivedAt) : isNull(jobsTable.archivedAt),
+  ];
   if (stage) conditions.push(eq(jobsTable.stage, stage));
   if (city) conditions.push(ilike(jobsTable.city, city));
   if (coverType) conditions.push(ilike(jobsTable.coverType, coverType));
@@ -69,14 +74,14 @@ router.get("/jobs", requireUser, async (req, res): Promise<void> => {
         ilike(jobsTable.customerName, pattern),
         ilike(jobsTable.address, pattern),
         ilike(jobsTable.city, pattern),
-      ),
+      )!,
     );
   }
 
   const jobs = await db
     .select()
     .from(jobsTable)
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(...installDateOrder);
 
   res.json(ListJobsResponse.parse(jobs.map(toApi)));
@@ -115,6 +120,7 @@ router.get("/jobs/export", requireUser, async (_req, res): Promise<void> => {
   const jobs = await db
     .select()
     .from(jobsTable)
+    .where(isNull(jobsTable.archivedAt))
     .orderBy(...installDateOrder);
 
   const stageLabels: Record<string, string> = {
@@ -246,6 +252,12 @@ router.patch("/jobs/:id", requireUser, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Job not found" });
     return;
   }
+  if (existing.archivedAt) {
+    res
+      .status(409)
+      .json({ error: "This job is archived — restore it before editing" });
+    return;
+  }
 
   // Cannot clear the install date on a post-Sold job.
   if (
@@ -302,6 +314,61 @@ router.delete(
   },
 );
 
+router.post(
+  "/jobs/:id/archive",
+  requireUser,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = GetJobParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    // Archiving is idempotent: re-archiving keeps the original archive time.
+    const [job] = await db
+      .update(jobsTable)
+      .set({ archivedAt: sql`COALESCE(${jobsTable.archivedAt}, NOW())` })
+      .where(eq(jobsTable.id, params.data.id))
+      .returning();
+
+    if (!job) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+
+    res.json(GetJobResponse.parse(toApi(job)));
+  },
+);
+
+router.post(
+  "/jobs/:id/unarchive",
+  requireUser,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = GetJobParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    // Stage and all other fields were never touched, so clearing the
+    // timestamp restores the job exactly where it was.
+    const [job] = await db
+      .update(jobsTable)
+      .set({ archivedAt: null })
+      .where(eq(jobsTable.id, params.data.id))
+      .returning();
+
+    if (!job) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+
+    res.json(GetJobResponse.parse(toApi(job)));
+  },
+);
+
 router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => {
   const params = MoveJobStageParams.safeParse(req.params);
   if (!params.success) {
@@ -335,6 +402,12 @@ router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => 
     res.status(404).json({ error: "Job not found" });
     return;
   }
+  if (existing.archivedAt) {
+    res
+      .status(409)
+      .json({ error: "This job is archived — restore it before moving it" });
+    return;
+  }
 
   const newDate = body.data.estimatedInstallDate ?? undefined;
   const effectiveDate = newDate ?? existing.estimatedInstallDate;
@@ -363,6 +436,7 @@ router.get("/summary", requireUser, async (_req, res): Promise<void> => {
   const jobs = await db
     .select()
     .from(jobsTable)
+    .where(isNull(jobsTable.archivedAt))
     .orderBy(...installDateOrder);
 
   const byStage = JOB_STAGES.map((stage) => {

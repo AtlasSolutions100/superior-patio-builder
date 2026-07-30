@@ -5,6 +5,8 @@ import {
   getExportJobsCsvQueryKey,
   useGetCurrentUser,
   useUpdateJob,
+  useArchiveJob,
+  useUnarchiveJob,
   getListJobsQueryKey,
   getGetBoardSummaryQueryKey,
   Job,
@@ -33,7 +35,10 @@ import {
   AlertTriangle,
   RefreshCw,
   X,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
+import { toast } from "sonner";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { queryClient } from "@/lib/query-client";
 import { JobDialog } from "@/components/job-dialog";
@@ -115,6 +120,7 @@ export default function ListPage() {
   const [filters, setFilters] = React.useState<Filters>({ ...DEFAULT_FILTERS });
   const [sort, setSort] = React.useState<Sort>({ ...DEFAULT_SORT });
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [showArchived, setShowArchived] = React.useState(false);
 
   // Which user's preferences the current state was initialized for. Held in
   // state (not a ref) so the persist effect below never runs against a userId
@@ -173,6 +179,7 @@ export default function ListPage() {
     coverType: debouncedFilters.coverType || undefined,
     dateFrom: debouncedFilters.dateFrom || undefined,
     dateTo: debouncedFilters.dateTo || undefined,
+    archived: showArchived ? true : undefined,
   });
 
   const sortedJobs = React.useMemo(() => {
@@ -238,13 +245,28 @@ export default function ListPage() {
       <div className="flex-none px-4 pt-4 pb-3 md:px-6 border-b border-border bg-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Job List</h1>
+            <h1 className="text-xl font-bold tracking-tight">
+              {showArchived ? "Archived Jobs" : "Job List"}
+            </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {sortedJobs?.length ?? 0} jobs shown. Click a column to sort; edit toggles and stage inline.
+              {showArchived
+                ? `${sortedJobs?.length ?? 0} archived jobs. They stay out of the board and main list until restored.`
+                : `${sortedJobs?.length ?? 0} jobs shown. Click a column to sort; edit toggles and stage inline.`}
             </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowArchived((v) => !v)}
+              className={`text-xs px-3 h-8 rounded-full border transition-colors inline-flex items-center gap-1.5 ${
+                showArchived
+                  ? "border-foreground/20 text-foreground bg-accent/50"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Archive className="w-3.5 h-3.5" />
+              Archived
+            </button>
             <Button
               onClick={handleExport}
               variant="outline"
@@ -392,12 +414,14 @@ export default function ListPage() {
             ) : sortedJobs?.length === 0 ? (
               <tr>
                 <td colSpan={12} className="px-4 py-10 text-center text-muted-foreground">
-                  No jobs found matching these filters.
+                  {showArchived
+                    ? "No archived jobs. Archive a finished job from its edit dialog or the list row."
+                    : "No jobs found matching these filters."}
                 </td>
               </tr>
             ) : (
               sortedJobs?.map((job) => (
-                <ListRow key={job.id} job={job} role={user?.role} />
+                <ListRow key={job.id} job={job} role={user?.role} archivedView={showArchived} />
               ))
             )}
           </tbody>
@@ -442,14 +466,55 @@ function SortableHeader({
   );
 }
 
-function ListRow({ job, role }: { job: Job; role?: string }) {
+function ListRow({ job, role, archivedView }: { job: Job; role?: string; archivedView?: boolean }) {
   const updateJob = useUpdateJob();
+  const archiveJob = useArchiveJob();
+  const unarchiveJob = useUnarchiveJob();
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [moveStageIntent, setMoveStageIntent] = React.useState<JobStage | null>(null);
 
-  const canEdit = role === "admin";
-  const canTechEdit = role === "tech" || canEdit;
-  const canMoveStage = canEdit || role === "tech";
+  const isAdmin = role === "admin";
+  // Archived rows are read-only until restored.
+  const canEdit = isAdmin && !archivedView;
+  const canTechEdit = (role === "tech" || isAdmin) && !archivedView;
+  const canMoveStage = canEdit || (role === "tech" && !archivedView);
+
+  const invalidateJobs = () => {
+    queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetBoardSummaryQueryKey() });
+  };
+
+  const handleArchive = () => {
+    if (
+      !window.confirm(
+        `Archive "${job.customerName}"? The job leaves the board and job list but is kept safe — you can restore it any time from the Archived view.`,
+      )
+    )
+      return;
+    archiveJob.mutate(
+      { id: job.id },
+      {
+        onSuccess: () => {
+          invalidateJobs();
+          toast.success("Job archived — find it under Archived");
+        },
+        onError: (err: any) => toast.error(err?.data?.error || "Failed to archive job"),
+      },
+    );
+  };
+
+  const handleUnarchive = () => {
+    unarchiveJob.mutate(
+      { id: job.id },
+      {
+        onSuccess: () => {
+          invalidateJobs();
+          toast.success(`"${job.customerName}" restored to ${STAGE_LABELS[job.stage] || job.stage}`);
+        },
+        onError: (err: any) => toast.error(err?.data?.error || "Failed to restore job"),
+      },
+    );
+  };
 
   const handleToggle = (
     field: keyof Pick<Job, "invoicedWithQb" | "depositPaid" | "materialOrdered" | "materialReceived">,
@@ -547,16 +612,41 @@ function ListRow({ job, role }: { job: Job; role?: string }) {
         <td className="px-2 py-1.5 text-xs text-muted-foreground truncate" title={job.lastNote || undefined}>
           {job.lastNote || "-"}
         </td>
-        <td className="px-2 py-1.5 text-right">
-          {canTechEdit && (
+        <td className="px-2 py-1.5 text-right whitespace-nowrap">
+          {archivedView && isAdmin ? (
             <button
               type="button"
-              onClick={() => setIsEditOpen(true)}
-              className="text-muted-foreground hover:text-primary transition-colors p-1"
-              title="Edit job"
+              onClick={handleUnarchive}
+              disabled={unarchiveJob.isPending}
+              className="text-muted-foreground hover:text-primary transition-colors p-1 disabled:opacity-50"
+              title="Restore job to the board"
             >
-              <PenSquare className="w-3.5 h-3.5" />
+              <ArchiveRestore className="w-3.5 h-3.5" />
             </button>
+          ) : (
+            <>
+              {canTechEdit && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditOpen(true)}
+                  className="text-muted-foreground hover:text-primary transition-colors p-1"
+                  title="Edit job"
+                >
+                  <PenSquare className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={handleArchive}
+                  disabled={archiveJob.isPending}
+                  className="text-muted-foreground hover:text-primary transition-colors p-1 disabled:opacity-50"
+                  title="Archive job"
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </>
           )}
         </td>
       </tr>
