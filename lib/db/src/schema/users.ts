@@ -7,7 +7,9 @@ export const appUsersTable = pgTable("app_users", {
   clerkUserId: text("clerk_user_id").notNull().unique(),
   email: text("email"),
   name: text("name"),
+  username: text("username").unique(),
   role: text("role").notNull().default("viewer"), // admin | tech | viewer
+  removedAt: timestamp("removed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

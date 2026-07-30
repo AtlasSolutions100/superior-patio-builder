@@ -46,6 +46,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
+    patch:
+      operationId: updateMyProfile
+      tags: [users]
+      summary: Update the signed-in user's own name and username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "409":
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
   /users:
     get:
       operationId: listUsers
@@ -70,7 +99,7 @@ paths:
     patch:
       operationId: updateUserRole
       tags: [users]
-      summary: Update a user's role (full-access only)
+      summary: Update a user's role, name, or username (full-access only)
       parameters:
         - name: id
           in: path
@@ -90,6 +119,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppUser"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "409":
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    delete:
+      operationId: removeUser
+      tags: [users]
+      summary: Remove a team member's account and revoke access (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+        "400":
+          description: Cannot remove yourself or the last admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
         "403":
           description: Forbidden
           content:
@@ -482,9 +548,11 @@ components:
           type: ["string", "null"]
         name:
           type: ["string", "null"]
+        username:
+          type: ["string", "null"]
         role:
           $ref: "#/components/schemas/UserRole"
-      required: [id, clerkUserId, email, name, role]
+      required: [id, clerkUserId, email, name, username, role]
     AppUser:
       type: object
       properties:
@@ -496,11 +564,13 @@ components:
           type: ["string", "null"]
         name:
           type: ["string", "null"]
+        username:
+          type: ["string", "null"]
         role:
           $ref: "#/components/schemas/UserRole"
         createdAt:
           type: string
-      required: [id, clerkUserId, email, name, role, createdAt]
+      required: [id, clerkUserId, email, name, username, role, createdAt]
     TeamInvite:
       type: object
       properties:
@@ -533,6 +603,21 @@ components:
       properties:
         role:
           $ref: "#/components/schemas/UserRole"
+        name:
+          type: string
+          maxLength: 80
+        username:
+          type: ["string", "null"]
+          maxLength: 24
+    ProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 80
+        username:
+          type: ["string", "null"]
+          maxLength: 24
       required: [role]
     JobStage:
       type: string

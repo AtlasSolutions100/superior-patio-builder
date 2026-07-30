@@ -1,12 +1,15 @@
 import { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db, appUsersTable, teamInvitesTable } from "@workspace/db";
 import {
   GetCurrentUserResponse,
   ListUsersResponse,
+  UpdateMyProfileBody,
+  UpdateMyProfileResponse,
   UpdateUserRoleParams,
   UpdateUserRoleBody,
   UpdateUserRoleResponse,
+  RemoveUserParams,
   ListInvitesResponse,
   CreateInviteBody,
   CreateInviteResponse,
@@ -19,6 +22,41 @@ import { requireUser, requireAdmin } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
+const USERNAME_RE = /^[a-z0-9](?:[a-z0-9._-]{1,22}[a-z0-9])?$/;
+
+/**
+ * Normalizes and validates a username from a request body.
+ * Returns { value } on success (null clears the username) or { error }.
+ */
+function parseUsername(raw: string | null | undefined): {
+  value?: string | null;
+  error?: string;
+} {
+  if (raw === undefined) return { value: undefined };
+  const trimmed = raw?.trim().toLowerCase() ?? null;
+  if (!trimmed) return { value: null };
+  if (!USERNAME_RE.test(trimmed)) {
+    return {
+      error:
+        "Usernames are 2–24 characters: lowercase letters, numbers, dots, dashes, underscores",
+    };
+  }
+  return { value: trimmed };
+}
+
+async function isUsernameTaken(
+  username: string,
+  excludeUserId: number,
+): Promise<boolean> {
+  const [existing] = await db
+    .select({ id: appUsersTable.id })
+    .from(appUsersTable)
+    .where(
+      and(eq(appUsersTable.username, username), ne(appUsersTable.id, excludeUserId)),
+    );
+  return !!existing;
+}
+
 router.get("/me", requireUser, async (req, res): Promise<void> => {
   const u = req.appUser!;
   res.json(
@@ -27,7 +65,60 @@ router.get("/me", requireUser, async (req, res): Promise<void> => {
       clerkUserId: u.clerkUserId,
       email: u.email,
       name: u.name,
+      username: u.username,
       role: u.role,
+    }),
+  );
+});
+
+router.patch("/me", requireUser, async (req, res): Promise<void> => {
+  const body = UpdateMyProfileBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Invalid profile" });
+    return;
+  }
+
+  const updates: { name?: string; username?: string | null } = {};
+  if (body.data.name !== undefined) {
+    const name = body.data.name.trim();
+    if (!name) {
+      res.status(400).json({ error: "Name cannot be empty" });
+      return;
+    }
+    updates.name = name;
+  }
+  const username = parseUsername(body.data.username);
+  if (username.error) {
+    res.status(400).json({ error: username.error });
+    return;
+  }
+  if (username.value !== undefined) {
+    if (
+      username.value &&
+      (await isUsernameTaken(username.value, req.appUser!.id))
+    ) {
+      res.status(409).json({ error: "That username is already taken" });
+      return;
+    }
+    updates.username = username.value;
+  }
+
+  const [user] = Object.keys(updates).length
+    ? await db
+        .update(appUsersTable)
+        .set(updates)
+        .where(eq(appUsersTable.id, req.appUser!.id))
+        .returning()
+    : [req.appUser!];
+
+  res.json(
+    UpdateMyProfileResponse.parse({
+      id: user.id,
+      clerkUserId: user.clerkUserId,
+      email: user.email,
+      name: user.name,
+      username: user.username,
+      role: user.role,
     }),
   );
 });
@@ -36,6 +127,7 @@ router.get("/users", requireUser, requireAdmin, async (_req, res): Promise<void>
   const users = await db
     .select()
     .from(appUsersTable)
+    .where(isNull(appUsersTable.removedAt))
     .orderBy(appUsersTable.createdAt);
   res.json(
     ListUsersResponse.parse(
@@ -60,15 +152,52 @@ router.patch(
       return;
     }
 
-    if (params.data.id === req.appUser!.id && body.data.role !== "admin") {
+    if (
+      params.data.id === req.appUser!.id &&
+      body.data.role !== undefined &&
+      body.data.role !== "admin"
+    ) {
       res.status(400).json({ error: "You cannot demote yourself" });
+      return;
+    }
+
+    const updates: { role?: string; name?: string; username?: string | null } = {};
+    if (body.data.role !== undefined) updates.role = body.data.role;
+    if (body.data.name !== undefined) {
+      const name = body.data.name.trim();
+      if (!name) {
+        res.status(400).json({ error: "Name cannot be empty" });
+        return;
+      }
+      updates.name = name;
+    }
+    const username = parseUsername(body.data.username);
+    if (username.error) {
+      res.status(400).json({ error: username.error });
+      return;
+    }
+    if (username.value !== undefined) {
+      if (
+        username.value &&
+        (await isUsernameTaken(username.value, params.data.id))
+      ) {
+        res.status(409).json({ error: "That username is already taken" });
+        return;
+      }
+      updates.username = username.value;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "Nothing to update" });
       return;
     }
 
     const [user] = await db
       .update(appUsersTable)
-      .set({ role: body.data.role })
-      .where(eq(appUsersTable.id, params.data.id))
+      .set(updates)
+      .where(
+        and(eq(appUsersTable.id, params.data.id), isNull(appUsersTable.removedAt)),
+      )
       .returning();
 
     if (!user) {
@@ -82,6 +211,57 @@ router.patch(
         createdAt: user.createdAt.toISOString(),
       }),
     );
+  },
+);
+
+router.delete(
+  "/users/:id",
+  requireUser,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = RemoveUserParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+
+    if (params.data.id === req.appUser!.id) {
+      res.status(400).json({ error: "You cannot remove your own account" });
+      return;
+    }
+
+    const [target] = await db
+      .select()
+      .from(appUsersTable)
+      .where(
+        and(eq(appUsersTable.id, params.data.id), isNull(appUsersTable.removedAt)),
+      );
+    if (!target) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (target.role === "admin") {
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(appUsersTable)
+        .where(
+          and(eq(appUsersTable.role, "admin"), isNull(appUsersTable.removedAt)),
+        );
+      if (count <= 1) {
+        res.status(400).json({ error: "The last admin cannot be removed" });
+        return;
+      }
+    }
+
+    // Soft-delete: keeps the row so a future sign-in with this account is
+    // recognized as removed instead of being silently re-provisioned.
+    await db
+      .update(appUsersTable)
+      .set({ removedAt: new Date() })
+      .where(eq(appUsersTable.id, params.data.id));
+
+    res.status(204).end();
   },
 );
 
@@ -109,9 +289,14 @@ router.post("/invites", requireUser, requireAdmin, async (req, res): Promise<voi
     .select()
     .from(appUsersTable)
     .where(sql`lower(${appUsersTable.email}) = ${email}`);
-  if (existingUser) {
+  if (existingUser && !existingUser.removedAt) {
     res.status(409).json({ error: "That email already belongs to a team member" });
     return;
+  }
+  if (existingUser?.removedAt) {
+    // Re-inviting a removed account: drop the old row so their next sign-in
+    // re-provisions them cleanly with the invited role.
+    await db.delete(appUsersTable).where(eq(appUsersTable.id, existingUser.id));
   }
 
   const [invite] = await db

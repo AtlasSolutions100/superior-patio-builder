@@ -14,6 +14,8 @@ export interface AppUser {
   email: string | null;
   /** @nullable */
   name: string | null;
+  /** @nullable */
+  username: string | null;
   role: UserRole;
   createdAt: string;
 }

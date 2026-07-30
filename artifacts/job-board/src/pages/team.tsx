@@ -10,22 +10,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, ShieldAlert, X } from "lucide-react";
+import { Loader2, Pencil, Plus, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { queryClient } from "@/lib/query-client";
 import { formatDate } from "@/lib/utils";
 import {
   useListUsers,
   useUpdateUserRole,
+  useRemoveUser,
   useGetCurrentUser,
   useListInvites,
   useCreateInvite,
   useUpdateInvite,
   useDeleteInvite,
+  AppUser,
   UserRoleUpdate,
   getListUsersQueryKey,
   getListInvitesQueryKey,
+  getGetCurrentUserQueryKey,
 } from "@workspace/api-client-react";
+import { EditProfileDialog } from "@/components/edit-profile-dialog";
 
 const ROLE_OPTIONS = [
   { value: "viewer", label: "Viewer (Read Only)" },
@@ -70,6 +74,7 @@ export default function TeamPage() {
   });
 
   const updateRole = useUpdateUserRole();
+  const removeUser = useRemoveUser();
   const createInvite = useCreateInvite();
   const updateInvite = useUpdateInvite();
   const deleteInvite = useDeleteInvite();
@@ -77,6 +82,7 @@ export default function TeamPage() {
   const [isInviteOpen, setIsInviteOpen] = React.useState(false);
   const [inviteEmail, setInviteEmail] = React.useState("");
   const [inviteRole, setInviteRole] = React.useState("viewer");
+  const [editingUser, setEditingUser] = React.useState<AppUser | null>(null);
 
   if (isLoadingMe) {
     return (
@@ -102,6 +108,39 @@ export default function TeamPage() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListInvitesQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+  };
+
+  const handleProfileSave = (values: { name: string; username: string | null }) => {
+    if (!editingUser) return;
+    updateRole.mutate(
+      { id: editingUser.id, data: values as UserRoleUpdate },
+      {
+        onSuccess: () => {
+          toast.success("Profile updated");
+          setEditingUser(null);
+          invalidate();
+        },
+        onError: (err: any) =>
+          toast.error(err?.data?.error || "Failed to update profile"),
+      },
+    );
+  };
+
+  const handleRemoveUser = () => {
+    if (!editingUser) return;
+    removeUser.mutate(
+      { id: editingUser.id },
+      {
+        onSuccess: () => {
+          toast.success(`${editingUser.name || editingUser.email} removed`);
+          setEditingUser(null);
+          invalidate();
+        },
+        onError: (err: any) =>
+          toast.error(err?.data?.error || "Failed to remove account"),
+      },
+    );
   };
 
   const handleRoleChange = (userId: number, newRole: string) => {
@@ -207,8 +246,22 @@ export default function TeamPage() {
                     {users?.map((user) => (
                       <tr key={user.id} className="hover:bg-accent/30 transition-colors">
                         <td className="px-4 py-3.5">
-                          <div className="font-medium text-foreground">
-                            {user.name || "Unknown"}
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-foreground">
+                              {user.name || "Unknown"}
+                            </span>
+                            {user.username && (
+                              <span className="text-xs text-muted-foreground/80">
+                                @{user.username}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => setEditingUser(user)}
+                              className="h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+                              title="Edit profile"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {user.email || "No email"}
@@ -288,6 +341,26 @@ export default function TeamPage() {
           </p>
         </div>
       </div>
+
+      <EditProfileDialog
+        open={!!editingUser}
+        onOpenChange={(open) => !open && setEditingUser(null)}
+        title="Edit Profile"
+        description={editingUser?.email || undefined}
+        initialName={editingUser?.name || ""}
+        initialUsername={editingUser?.username || ""}
+        isSaving={updateRole.isPending}
+        onSave={handleProfileSave}
+        remove={
+          editingUser && editingUser.id !== currentUser.id
+            ? {
+                label: editingUser.name || editingUser.email || "This member",
+                isRemoving: removeUser.isPending,
+                onRemove: handleRemoveUser,
+              }
+            : undefined
+        }
+      />
 
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
         <DialogContent className="sm:max-w-md">

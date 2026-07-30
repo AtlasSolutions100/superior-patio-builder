@@ -30,6 +30,7 @@ import type {
   JobStageMove,
   JobUpdate,
   ListJobsParams,
+  ProfileUpdate,
   TeamInvite,
   TeamInviteInput,
   TeamInviteUpdate,
@@ -218,6 +219,77 @@ export function useGetCurrentUser<TData = Awaited<ReturnType<typeof getCurrentUs
 
 
 
+export const getUpdateMyProfileUrl = () => {
+
+
+
+
+  return `/api/me`
+}
+
+/**
+ * @summary Update the signed-in user's own name and username
+ */
+export const updateMyProfile = async (profileUpdate: ProfileUpdate, options?: Parameters<typeof customFetch>[1]): Promise<CurrentUser> => {
+
+  return customFetch<CurrentUser>(getUpdateMyProfileUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(profileUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateMyProfileMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyProfile>>, TError,{data: BodyType<ProfileUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMyProfile>>, TError,{data: BodyType<ProfileUpdate>}, TContext> => {
+
+const mutationKey = ['updateMyProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyProfile>>, {data: BodyType<ProfileUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMyProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMyProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyProfile>>>
+    export type UpdateMyProfileMutationBody = BodyType<ProfileUpdate>
+    export type UpdateMyProfileMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Update the signed-in user's own name and username
+ */
+export const useUpdateMyProfile = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyProfile>>, TError,{data: BodyType<ProfileUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMyProfile>>,
+        TError,
+        {data: BodyType<ProfileUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateMyProfileMutationOptions(options));
+    }
+
 export const getListUsersUrl = () => {
 
 
@@ -304,7 +376,7 @@ export const getUpdateUserRoleUrl = (id: number,) => {
 }
 
 /**
- * @summary Update a user's role (full-access only)
+ * @summary Update a user's role, name, or username (full-access only)
  */
 export const updateUserRole = async (id: number,
     userRoleUpdate: UserRoleUpdate, options?: Parameters<typeof customFetch>[1]): Promise<AppUser> => {
@@ -354,7 +426,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateUserRoleMutationError = ErrorType<ErrorMessage>
 
     /**
- * @summary Update a user's role (full-access only)
+ * @summary Update a user's role, name, or username (full-access only)
  */
 export const useUpdateUserRole = <TError = ErrorType<ErrorMessage>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUserRole>>, TError,{id: number;data: BodyType<UserRoleUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -365,6 +437,77 @@ export const useUpdateUserRole = <TError = ErrorType<ErrorMessage>,
         TContext
       > => {
       return useMutation(getUpdateUserRoleMutationOptions(options));
+    }
+
+export const getRemoveUserUrl = (id: number,) => {
+
+
+
+
+  return `/api/users/${id}`
+}
+
+/**
+ * @summary Remove a team member's account and revoke access (full-access only)
+ */
+export const removeUser = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRemoveUserUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveUserMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeUser>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeUser>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['removeUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeUser>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  removeUser(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveUserMutationResult = NonNullable<Awaited<ReturnType<typeof removeUser>>>
+
+    export type RemoveUserMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Remove a team member's account and revoke access (full-access only)
+ */
+export const useRemoveUser = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeUser>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeUser>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRemoveUserMutationOptions(options));
     }
 
 export const getListInvitesUrl = () => {

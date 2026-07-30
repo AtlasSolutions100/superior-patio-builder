@@ -14,5 +14,7 @@ export interface CurrentUser {
   email: string | null;
   /** @nullable */
   name: string | null;
+  /** @nullable */
+  username: string | null;
   role: UserRole;
 }

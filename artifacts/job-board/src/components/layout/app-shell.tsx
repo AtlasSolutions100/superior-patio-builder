@@ -3,7 +3,15 @@ import { Link, useLocation } from "wouter";
 import { KanbanSquare, Table2, Users, LayoutDashboard, LogOut, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClerk } from "@clerk/react";
-import { useGetCurrentUser } from "@workspace/api-client-react";
+import { toast } from "sonner";
+import {
+  useGetCurrentUser,
+  useUpdateMyProfile,
+  getGetCurrentUserQueryKey,
+  getListUsersQueryKey,
+} from "@workspace/api-client-react";
+import { queryClient } from "@/lib/query-client";
+import { EditProfileDialog } from "@/components/edit-profile-dialog";
 import { SummaryStrip } from "./summary-strip";
 
 interface AppShellProps {
@@ -16,6 +24,24 @@ export function AppShell({ children }: AppShellProps) {
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
   
   const { data: user, isLoading } = useGetCurrentUser();
+  const updateMyProfile = useUpdateMyProfile();
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+
+  const handleProfileSave = (values: { name: string; username: string | null }) => {
+    updateMyProfile.mutate(
+      { data: values },
+      {
+        onSuccess: () => {
+          toast.success("Profile updated");
+          setIsProfileOpen(false);
+          queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+        },
+        onError: (err: any) =>
+          toast.error(err?.data?.error || "Failed to update profile"),
+      },
+    );
+  };
 
   const links = [
     { href: "/board", label: "Kanban Board", icon: KanbanSquare },
@@ -73,10 +99,16 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           ) : (
             <div className="flex items-center justify-between px-3 py-2 rounded-md">
-              <div className="flex flex-col truncate pr-2">
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="flex flex-col items-start truncate pr-2 text-left rounded-md hover:opacity-80 transition-opacity"
+                title="Edit your profile"
+              >
                 <span className="text-sm font-medium truncate">{user?.name || user?.email || "User"}</span>
-                <span className="text-xs text-sidebar-foreground/50 capitalize">{user?.role}</span>
-              </div>
+                <span className="text-xs text-sidebar-foreground/50 truncate">
+                  {user?.username ? `@${user.username}` : <span className="capitalize">{user?.role}</span>}
+                </span>
+              </button>
               <button 
                 onClick={handleSignOut}
                 className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-1 rounded-md"
@@ -88,6 +120,17 @@ export function AppShell({ children }: AppShellProps) {
           )}
         </div>
       </div>
+
+      <EditProfileDialog
+        open={isProfileOpen}
+        onOpenChange={setIsProfileOpen}
+        title="Your Profile"
+        description={user?.email || undefined}
+        initialName={user?.name || ""}
+        initialUsername={user?.username || ""}
+        isSaving={updateMyProfile.isPending}
+        onSave={handleProfileSave}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden">

@@ -105,6 +105,12 @@ export async function requireUser(
     return;
   }
 
+  if (user.removedAt) {
+    // Account was removed by an admin — access stays revoked even if they sign in again.
+    res.status(403).json({ error: "Your access has been removed" });
+    return;
+  }
+
   req.appUser = user;
   next();
 }

@@ -17,6 +17,7 @@ export * from './jobStage';
 export * from './jobStageMove';
 export * from './jobUpdate';
 export * from './listJobsParams';
+export * from './profileUpdate';
 export * from './stageSummary';
 export * from './teamInvite';
 export * from './teamInviteInput';

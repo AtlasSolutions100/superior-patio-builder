@@ -25,6 +25,31 @@ export const GetCurrentUserResponse = zod.object({
   "clerkUserId": zod.string(),
   "email": zod.string().nullable(),
   "name": zod.string().nullable(),
+  "username": zod.string().nullable(),
+  "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only')
+})
+
+
+/**
+ * @summary Update the signed-in user's own name and username
+ */
+export const updateMyProfileBodyNameMax = 80;
+
+export const updateMyProfileBodyUsernameMax = 24;
+
+
+
+export const UpdateMyProfileBody = zod.object({
+  "name": zod.string().max(updateMyProfileBodyNameMax).optional(),
+  "username": zod.string().max(updateMyProfileBodyUsernameMax).nullish()
+})
+
+export const UpdateMyProfileResponse = zod.object({
+  "id": zod.int(),
+  "clerkUserId": zod.string(),
+  "email": zod.string().nullable(),
+  "name": zod.string().nullable(),
+  "username": zod.string().nullable(),
   "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only')
 })
 
@@ -37,6 +62,7 @@ export const ListUsersResponseItem = zod.object({
   "clerkUserId": zod.string(),
   "email": zod.string().nullable(),
   "name": zod.string().nullable(),
+  "username": zod.string().nullable(),
   "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only'),
   "createdAt": zod.string()
 })
@@ -44,14 +70,22 @@ export const ListUsersResponse = zod.array(ListUsersResponseItem)
 
 
 /**
- * @summary Update a user's role (full-access only)
+ * @summary Update a user's role, name, or username (full-access only)
  */
 export const UpdateUserRoleParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
+export const updateUserRoleBodyNameMax = 80;
+
+export const updateUserRoleBodyUsernameMax = 24;
+
+
+
 export const UpdateUserRoleBody = zod.object({
-  "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only')
+  "role": zod.enum(['admin', 'tech', 'viewer']).optional().describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only'),
+  "name": zod.string().max(updateUserRoleBodyNameMax).optional(),
+  "username": zod.string().max(updateUserRoleBodyUsernameMax).nullish()
 })
 
 export const UpdateUserRoleResponse = zod.object({
@@ -59,9 +93,20 @@ export const UpdateUserRoleResponse = zod.object({
   "clerkUserId": zod.string(),
   "email": zod.string().nullable(),
   "name": zod.string().nullable(),
+  "username": zod.string().nullable(),
   "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only'),
   "createdAt": zod.string()
 })
+
+
+/**
+ * @summary Remove a team member's account and revoke access (full-access only)
+ */
+export const RemoveUserParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const RemoveUserResponse = zod.void()
 
 
 /**

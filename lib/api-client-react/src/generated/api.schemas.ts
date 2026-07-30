@@ -32,6 +32,8 @@ export interface CurrentUser {
   email: string | null;
   /** @nullable */
   name: string | null;
+  /** @nullable */
+  username: string | null;
   role: UserRole;
 }
 
@@ -42,6 +44,8 @@ export interface AppUser {
   email: string | null;
   /** @nullable */
   name: string | null;
+  /** @nullable */
+  username: string | null;
   role: UserRole;
   createdAt: string;
 }
@@ -63,7 +67,24 @@ export interface TeamInviteUpdate {
 }
 
 export interface UserRoleUpdate {
-  role: UserRole;
+  role?: UserRole;
+  /** @maxLength 80 */
+  name?: string;
+  /**
+     * @maxLength 24
+     * @nullable
+     */
+  username?: string | null;
+}
+
+export interface ProfileUpdate {
+  /** @maxLength 80 */
+  name?: string;
+  /**
+     * @maxLength 24
+     * @nullable
+     */
+  username?: string | null;
 }
 
 /**
