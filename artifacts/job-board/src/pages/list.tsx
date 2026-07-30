@@ -32,6 +32,7 @@ import {
   PenSquare,
   AlertTriangle,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { queryClient } from "@/lib/query-client";
@@ -48,21 +49,115 @@ type SortKey =
 
 const STAGE_ORDER = Object.keys(STAGE_LABELS);
 
+type Filters = {
+  search: string;
+  stage: string;
+  city: string;
+  coverType: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+type Sort = { key: SortKey; dir: "asc" | "desc" };
+
+const DEFAULT_FILTERS: Filters = {
+  search: "",
+  stage: "",
+  city: "",
+  coverType: "",
+  dateFrom: "",
+  dateTo: "",
+};
+
+const DEFAULT_SORT: Sort = { key: "estimatedInstallDate", dir: "asc" };
+
+const SORT_KEYS: SortKey[] = [
+  "customerName",
+  "city",
+  "coverType",
+  "contractAmount",
+  "estimatedInstallDate",
+  "stage",
+];
+
+function prefsStorageKey(userId: string) {
+  return `spc-list-prefs:${userId}`;
+}
+
+function loadPrefs(userId: string): { filters: Filters; sort: Sort } | null {
+  try {
+    const raw = localStorage.getItem(prefsStorageKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const filters: Filters = { ...DEFAULT_FILTERS };
+    if (parsed?.filters && typeof parsed.filters === "object") {
+      (Object.keys(DEFAULT_FILTERS) as (keyof Filters)[]).forEach((k) => {
+        if (typeof parsed.filters[k] === "string") filters[k] = parsed.filters[k];
+      });
+    }
+    let sort: Sort = { ...DEFAULT_SORT };
+    if (
+      parsed?.sort &&
+      SORT_KEYS.includes(parsed.sort.key) &&
+      (parsed.sort.dir === "asc" || parsed.sort.dir === "desc")
+    ) {
+      sort = { key: parsed.sort.key, dir: parsed.sort.dir };
+    }
+    return { filters, sort };
+  } catch {
+    return null;
+  }
+}
+
 export default function ListPage() {
   const { data: user } = useGetCurrentUser();
-  const [filters, setFilters] = React.useState({
-    search: "",
-    stage: "",
-    city: "",
-    coverType: "",
-    dateFrom: "",
-    dateTo: "",
-  });
-  const [sort, setSort] = React.useState<{ key: SortKey; dir: "asc" | "desc" }>({
-    key: "estimatedInstallDate",
-    dir: "asc",
-  });
+  const userId = user?.id ? String(user.id) : null;
+  const [filters, setFilters] = React.useState<Filters>({ ...DEFAULT_FILTERS });
+  const [sort, setSort] = React.useState<Sort>({ ...DEFAULT_SORT });
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+
+  // Which user's preferences the current state was initialized for. Held in
+  // state (not a ref) so the persist effect below never runs against a userId
+  // whose prefs haven't been loaded into state yet.
+  const [initializedUserId, setInitializedUserId] = React.useState<string | null>(null);
+
+  // Load saved preferences whenever the signed-in user changes.
+  React.useEffect(() => {
+    if (!userId || initializedUserId === userId) return;
+    const saved = loadPrefs(userId);
+    // Always initialize for this user: saved prefs if present, defaults otherwise —
+    // never carry another user's in-memory filters over.
+    setFilters(saved ? saved.filters : { ...DEFAULT_FILTERS });
+    setSort(saved ? saved.sort : { ...DEFAULT_SORT });
+    setInitializedUserId(userId);
+  }, [userId, initializedUserId]);
+
+  // Persist preferences whenever they change (after initialization for this user).
+  React.useEffect(() => {
+    if (!userId || initializedUserId !== userId) return;
+    try {
+      localStorage.setItem(prefsStorageKey(userId), JSON.stringify({ filters, sort }));
+    } catch {
+      // Storage unavailable (private mode/quota) — persistence is best-effort.
+    }
+  }, [userId, filters, sort]);
+
+  const hasActiveFilters =
+    Object.values(filters).some((v) => v !== "") ||
+    sort.key !== DEFAULT_SORT.key ||
+    sort.dir !== DEFAULT_SORT.dir;
+
+  const resetFilters = () => {
+    setFilters({ ...DEFAULT_FILTERS });
+    setSort({ ...DEFAULT_SORT });
+    if (userId) {
+      try {
+        localStorage.removeItem(prefsStorageKey(userId));
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const [debouncedFilters, setDebouncedFilters] = React.useState(filters);
 
@@ -225,6 +320,18 @@ export default function ListPage() {
             value={filters.dateTo}
             onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
           />
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs text-muted-foreground"
+            onClick={resetFilters}
+            disabled={!hasActiveFilters}
+            title="Clear all filters and restore default sort"
+          >
+            <X className="w-3.5 h-3.5 mr-1" />
+            Reset filters
+          </Button>
         </div>
       </div>
 
