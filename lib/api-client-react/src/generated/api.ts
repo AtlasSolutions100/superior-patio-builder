@@ -30,6 +30,9 @@ import type {
   JobStageMove,
   JobUpdate,
   ListJobsParams,
+  TeamInvite,
+  TeamInviteInput,
+  TeamInviteUpdate,
   UserRoleUpdate
 } from './api.schemas';
 
@@ -362,6 +365,297 @@ export const useUpdateUserRole = <TError = ErrorType<ErrorMessage>,
         TContext
       > => {
       return useMutation(getUpdateUserRoleMutationOptions(options));
+    }
+
+export const getListInvitesUrl = () => {
+
+
+
+
+  return `/api/invites`
+}
+
+/**
+ * @summary List pending team invites (full-access only)
+ */
+export const listInvites = async ( options?: Parameters<typeof customFetch>[1]): Promise<TeamInvite[]> => {
+
+  return customFetch<TeamInvite[]>(getListInvitesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListInvitesQueryKey = () => {
+    return [
+    `/api/invites`
+    ] as const;
+    }
+
+
+export const getListInvitesQueryOptions = <TData = Awaited<ReturnType<typeof listInvites>>, TError = ErrorType<ErrorMessage>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listInvites>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListInvitesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listInvites>>> = ({ signal }) => listInvites({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listInvites>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListInvitesQueryResult = NonNullable<Awaited<ReturnType<typeof listInvites>>>
+export type ListInvitesQueryError = ErrorType<ErrorMessage>
+
+
+/**
+ * @summary List pending team invites (full-access only)
+ */
+
+export function useListInvites<TData = Awaited<ReturnType<typeof listInvites>>, TError = ErrorType<ErrorMessage>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listInvites>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListInvitesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateInviteUrl = () => {
+
+
+
+
+  return `/api/invites`
+}
+
+/**
+ * @summary Pre-assign a role to an email before first sign-in (full-access only)
+ */
+export const createInvite = async (teamInviteInput: TeamInviteInput, options?: Parameters<typeof customFetch>[1]): Promise<TeamInvite> => {
+
+  return customFetch<TeamInvite>(getCreateInviteUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(teamInviteInput)
+  }
+);}
+
+
+
+
+
+export const getCreateInviteMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInvite>>, TError,{data: BodyType<TeamInviteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createInvite>>, TError,{data: BodyType<TeamInviteInput>}, TContext> => {
+
+const mutationKey = ['createInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createInvite>>, {data: BodyType<TeamInviteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createInvite(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateInviteMutationResult = NonNullable<Awaited<ReturnType<typeof createInvite>>>
+    export type CreateInviteMutationBody = BodyType<TeamInviteInput>
+    export type CreateInviteMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Pre-assign a role to an email before first sign-in (full-access only)
+ */
+export const useCreateInvite = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInvite>>, TError,{data: BodyType<TeamInviteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createInvite>>,
+        TError,
+        {data: BodyType<TeamInviteInput>},
+        TContext
+      > => {
+      return useMutation(getCreateInviteMutationOptions(options));
+    }
+
+export const getUpdateInviteUrl = (id: number,) => {
+
+
+
+
+  return `/api/invites/${id}`
+}
+
+/**
+ * @summary Change the role on a pending invite (full-access only)
+ */
+export const updateInvite = async (id: number,
+    teamInviteUpdate: TeamInviteUpdate, options?: Parameters<typeof customFetch>[1]): Promise<TeamInvite> => {
+
+  return customFetch<TeamInvite>(getUpdateInviteUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(teamInviteUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateInviteMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateInvite>>, TError,{id: number;data: BodyType<TeamInviteUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateInvite>>, TError,{id: number;data: BodyType<TeamInviteUpdate>}, TContext> => {
+
+const mutationKey = ['updateInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateInvite>>, {id: number;data: BodyType<TeamInviteUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateInvite(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateInviteMutationResult = NonNullable<Awaited<ReturnType<typeof updateInvite>>>
+    export type UpdateInviteMutationBody = BodyType<TeamInviteUpdate>
+    export type UpdateInviteMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Change the role on a pending invite (full-access only)
+ */
+export const useUpdateInvite = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateInvite>>, TError,{id: number;data: BodyType<TeamInviteUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateInvite>>,
+        TError,
+        {id: number;data: BodyType<TeamInviteUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateInviteMutationOptions(options));
+    }
+
+export const getDeleteInviteUrl = (id: number,) => {
+
+
+
+
+  return `/api/invites/${id}`
+}
+
+/**
+ * @summary Remove a pending invite (full-access only)
+ */
+export const deleteInvite = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteInviteUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteInviteMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteInvite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteInvite>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteInvite>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteInvite(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteInviteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteInvite>>>
+
+    export type DeleteInviteMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Remove a pending invite (full-access only)
+ */
+export const useDeleteInvite = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteInvite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteInvite>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteInviteMutationOptions(options));
     }
 
 export const getListJobsUrl = (params?: ListJobsParams,) => {

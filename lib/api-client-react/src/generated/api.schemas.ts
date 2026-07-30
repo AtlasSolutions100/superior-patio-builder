@@ -46,6 +46,22 @@ export interface AppUser {
   createdAt: string;
 }
 
+export interface TeamInvite {
+  id: number;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface TeamInviteInput {
+  email: string;
+  role: UserRole;
+}
+
+export interface TeamInviteUpdate {
+  role: UserRole;
+}
+
 export interface UserRoleUpdate {
   role: UserRole;
 }

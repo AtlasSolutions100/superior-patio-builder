@@ -65,6 +65,63 @@ export const UpdateUserRoleResponse = zod.object({
 
 
 /**
+ * @summary List pending team invites (full-access only)
+ */
+export const ListInvitesResponseItem = zod.object({
+  "id": zod.int(),
+  "email": zod.string(),
+  "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only'),
+  "createdAt": zod.string()
+})
+export const ListInvitesResponse = zod.array(ListInvitesResponseItem)
+
+
+/**
+ * @summary Pre-assign a role to an email before first sign-in (full-access only)
+ */
+export const CreateInviteBody = zod.object({
+  "email": zod.email(),
+  "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only')
+})
+
+export const CreateInviteResponse = zod.object({
+  "id": zod.int(),
+  "email": zod.string(),
+  "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only'),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Change the role on a pending invite (full-access only)
+ */
+export const UpdateInviteParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdateInviteBody = zod.object({
+  "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only')
+})
+
+export const UpdateInviteResponse = zod.object({
+  "id": zod.int(),
+  "email": zod.string(),
+  "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only'),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Remove a pending invite (full-access only)
+ */
+export const DeleteInviteParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteInviteResponse = zod.void()
+
+
+/**
  * @summary List jobs with optional filters, sorted by estimated install date ascending
  */
 export const ListJobsQueryParams = zod.object({

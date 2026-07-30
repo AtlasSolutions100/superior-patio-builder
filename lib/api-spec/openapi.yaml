@@ -102,6 +102,122 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
+  /invites:
+    get:
+      operationId: listInvites
+      tags: [users]
+      summary: List pending team invites (full-access only)
+      responses:
+        "200":
+          description: Pending invites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeamInvite"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    post:
+      operationId: createInvite
+      tags: [users]
+      summary: Pre-assign a role to an email before first sign-in (full-access only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamInviteInput"
+      responses:
+        "201":
+          description: Created invite
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamInvite"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "409":
+          description: Email already invited or already a member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /invites/{id}:
+    patch:
+      operationId: updateInvite
+      tags: [users]
+      summary: Change the role on a pending invite (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamInviteUpdate"
+      responses:
+        "200":
+          description: Updated invite
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamInvite"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    delete:
+      operationId: deleteInvite
+      tags: [users]
+      summary: Remove a pending invite (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
   /jobs:
     get:
       operationId: listJobs
@@ -385,6 +501,33 @@ components:
         createdAt:
           type: string
       required: [id, clerkUserId, email, name, role, createdAt]
+    TeamInvite:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        createdAt:
+          type: string
+      required: [id, email, role, createdAt]
+    TeamInviteInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+      required: [email, role]
+    TeamInviteUpdate:
+      type: object
+      properties:
+        role:
+          $ref: "#/components/schemas/UserRole"
+      required: [role]
     UserRoleUpdate:
       type: object
       properties:

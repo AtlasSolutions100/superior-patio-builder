@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { getAuth, clerkClient } from "@clerk/express";
-import { db, appUsersTable, type AppUser } from "@workspace/db";
+import { db, appUsersTable, teamInvitesTable, type AppUser } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 
 declare global {
@@ -59,6 +59,18 @@ export async function requireUser(
     let role: string | undefined = email
       ? DEMO_ROLE_BY_EMAIL[email.toLowerCase()]
       : undefined;
+    let matchedInviteId: number | undefined;
+    if (!role && email) {
+      // A pending team invite pre-assigns this email's role.
+      const [invite] = await db
+        .select()
+        .from(teamInvitesTable)
+        .where(sql`lower(${teamInvitesTable.email}) = ${email.toLowerCase()}`);
+      if (invite) {
+        role = invite.role;
+        matchedInviteId = invite.id;
+      }
+    }
     if (!role) {
       const [{ count }] = await db
         .select({ count: sql<number>`count(*)::int` })
@@ -78,6 +90,13 @@ export async function requireUser(
         .select()
         .from(appUsersTable)
         .where(eq(appUsersTable.clerkUserId, clerkUserId));
+    }
+
+    if (user && matchedInviteId !== undefined) {
+      // Invite consumed — remove the pending entry.
+      await db
+        .delete(teamInvitesTable)
+        .where(eq(teamInvitesTable.id, matchedInviteId));
     }
   }
 

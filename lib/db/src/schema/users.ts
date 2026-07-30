@@ -13,6 +13,17 @@ export const appUsersTable = pgTable("app_users", {
     .defaultNow(),
 });
 
+export const teamInvitesTable = pgTable("team_invites", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  role: text("role").notNull().default("viewer"), // admin | tech | viewer
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type TeamInvite = typeof teamInvitesTable.$inferSelect;
+
 export const insertAppUserSchema = createInsertSchema(appUsersTable).omit({
   id: true,
   createdAt: true,
