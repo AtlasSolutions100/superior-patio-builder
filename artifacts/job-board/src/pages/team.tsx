@@ -31,6 +31,17 @@ import {
 } from "@workspace/api-client-react";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
 
+// Demo accounts back the dev-only demo login buttons; hide the remove action
+// for them so an accidental click can't break the demo flow. Mirrors the
+// server-side guard, which only applies with a development (pk_test) key.
+const DEMO_EMAILS = new Set(["admin@demo.com", "tech@demo.com", "viewer@demo.com"]);
+const isDevClerkInstance = (
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? ""
+).startsWith("pk_test_");
+function isDemoAccount(email: string | null | undefined): boolean {
+  return isDevClerkInstance && !!email && DEMO_EMAILS.has(email.toLowerCase());
+}
+
 const ROLE_OPTIONS = [
   { value: "viewer", label: "Viewer (Read Only)" },
   { value: "tech", label: "Tech (Install + Notes)" },
@@ -352,7 +363,9 @@ export default function TeamPage() {
         isSaving={updateRole.isPending}
         onSave={handleProfileSave}
         remove={
-          editingUser && editingUser.id !== currentUser.id
+          editingUser &&
+          editingUser.id !== currentUser.id &&
+          !isDemoAccount(editingUser.email)
             ? {
                 label: editingUser.name || editingUser.email || "This member",
                 isRemoving: removeUser.isPending,

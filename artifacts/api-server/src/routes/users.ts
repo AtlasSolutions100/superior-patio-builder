@@ -19,6 +19,7 @@ import {
   DeleteInviteParams,
 } from "@workspace/api-zod";
 import { requireUser, requireAdmin } from "../middlewares/auth";
+import { isDemoEnvironment, isDemoEmail } from "../lib/demoAccounts";
 
 const router: IRouter = Router();
 
@@ -238,6 +239,13 @@ router.delete(
       );
     if (!target) {
       res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (isDemoEnvironment() && isDemoEmail(target.email)) {
+      // Demo accounts back the sign-in page's demo buttons in development;
+      // removing one would break them.
+      res.status(400).json({ error: "Demo accounts cannot be removed" });
       return;
     }
 

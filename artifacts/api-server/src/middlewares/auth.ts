@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { getAuth, clerkClient } from "@clerk/express";
 import { db, appUsersTable, teamInvitesTable, type AppUser } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { DEMO_ROLE_BY_EMAIL } from "../lib/demoAccounts";
 
 declare global {
   namespace Express {
@@ -10,16 +11,6 @@ declare global {
     }
   }
 }
-
-/**
- * Seeded demo accounts (dev-only Clerk users) get a fixed role on first
- * sign-in instead of going through the first-signup-becomes-admin rule.
- */
-const DEMO_ROLE_BY_EMAIL: Record<string, AppUser["role"]> = {
-  "admin@demo.com": "admin",
-  "tech@demo.com": "tech",
-  "viewer@demo.com": "viewer",
-};
 
 /**
  * Requires a Clerk session and just-in-time provisions a local app_users row.
