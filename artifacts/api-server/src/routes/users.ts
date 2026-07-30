@@ -234,11 +234,11 @@ router.delete(
     const [target] = await db
       .select()
       .from(appUsersTable)
-      .where(
-        and(eq(appUsersTable.id, params.data.id), isNull(appUsersTable.removedAt)),
-      );
-    if (!target) {
-      res.status(404).json({ error: "User not found" });
+      .where(eq(appUsersTable.id, params.data.id));
+    if (!target || target.removedAt) {
+      // Idempotent: an unknown or already-removed target means the desired
+      // end state (member gone) already holds, so report success.
+      res.status(204).end();
       return;
     }
 
