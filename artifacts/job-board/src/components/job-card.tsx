@@ -79,7 +79,9 @@ export default function JobCard({
 
         <div className="flex items-center justify-between text-xs">
           <span className={isLate ? "text-destructive font-medium" : "text-muted-foreground"}>
-            {job.estimatedInstallDate ? formatDate(job.estimatedInstallDate) : "No install date"}
+            {job.estimatedInstallDate
+              ? `Install: ${formatDate(job.estimatedInstallDate)}`
+              : "No install date"}
           </span>
           {job.contractAmount != null && (
             <span className="font-medium text-foreground tabular-nums">
