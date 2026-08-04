@@ -12,6 +12,16 @@ import { STAGE_LABELS } from "@/lib/utils";
 import { toast } from "sonner";
 import { JobNotes } from "./job-notes";
 
+const LEAD_SOURCE_PRESETS = [
+  "Google Ads",
+  "Referral",
+  "Home Show",
+  "Website",
+  "Facebook",
+  "Yard Sign",
+  "Repeat Customer",
+];
+
 const jobSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
   phone: z.string().optional().nullable(),
@@ -193,7 +203,23 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
             
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...form.register("phone")} disabled={fieldsDisabled} />
+              <Input id="phone" type="tel" placeholder="(555) 555-1234" {...form.register("phone")} disabled={fieldsDisabled} />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="source">Lead Source</Label>
+              <Input
+                id="source"
+                list="lead-source-options"
+                placeholder="Pick a common source or type your own"
+                {...form.register("source")}
+                disabled={fieldsDisabled}
+              />
+              <datalist id="lead-source-options">
+                {LEAD_SOURCE_PRESETS.map(s => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-2">
