@@ -1,6 +1,7 @@
 import * as React from "react";
 import { formatDate, STAGE_LABELS, STAGE_GROUPS, PIPELINE_STAGES } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, CheckCircle2, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,9 @@ export default function JobCard({
   const canTechEdit = user?.role === "tech" || canEdit;
   const showMoveMenu = variant === "lead" ? canEdit : canTechEdit;
 
+  // On the pipeline, a Sold lead is converted — it now lives on the Job Board.
+  const isConverted = variant === "lead" && job.stage === "sold";
+
   const isLate =
     job.estimatedInstallDate &&
     new Date(job.estimatedInstallDate) < new Date() &&
@@ -69,14 +73,21 @@ export default function JobCard({
           onDragStart?.();
         }}
         onDragEnd={() => onDragEnd?.()}
-        className={`flex flex-col bg-card rounded-xl border-border/70 p-4 gap-3 shadow-none ${
-          draggable ? "cursor-grab active:cursor-grabbing" : ""
-        } ${isDragging ? "opacity-40" : ""}`}
+        className={`flex flex-col rounded-xl p-4 gap-3 shadow-none ${
+          isConverted ? "bg-muted/50 border-border/50" : "bg-card border-border/70"
+        } ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-40" : ""}`}
       >
         <div className="min-w-0">
-          <div className="text-[11px] text-muted-foreground/80 mb-1 truncate">
-            {STAGE_LABELS[job.stage] || job.stage}
-          </div>
+          {isConverted ? (
+            <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-500 mb-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Sold
+            </div>
+          ) : (
+            <div className="text-[11px] text-muted-foreground/80 mb-1 truncate">
+              {STAGE_LABELS[job.stage] || job.stage}
+            </div>
+          )}
           <h4
             className="font-medium text-sm text-foreground truncate cursor-pointer hover:text-primary"
             onClick={() => setIsEditOpen(true)}
@@ -132,6 +143,16 @@ export default function JobCard({
           <p className="text-xs text-muted-foreground line-clamp-1" title={job.lastNote}>
             {job.lastNote}
           </p>
+        )}
+
+        {isConverted && (
+          <Link
+            href="/board"
+            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary"
+          >
+            Now on the Job Board
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         )}
 
         {showMoveMenu && (

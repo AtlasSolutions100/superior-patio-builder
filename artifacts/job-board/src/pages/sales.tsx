@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useListJobs, useGetCurrentUser, Job } from "@workspace/api-client-react";
-import { SALES_STAGES, STAGE_LABELS } from "@/lib/utils";
+import { SALES_STAGES, PIPELINE_STAGES, STAGE_LABELS } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, AlertTriangle, RefreshCw } from "lucide-react";
 import { JobDialog } from "@/components/job-dialog";
@@ -26,6 +26,15 @@ export default function SalesPage() {
         (SALES_STAGES as readonly string[]).includes(job.stage)
       ),
     [jobs]
+  );
+
+  // Header counts active leads only — Sold jobs are converted, not leads.
+  const activeLeadCount = React.useMemo(
+    () =>
+      salesJobs.filter(job =>
+        (PIPELINE_STAGES as readonly string[]).includes(job.stage)
+      ).length,
+    [salesJobs]
   );
 
   if (error && !jobs) {
@@ -54,7 +63,7 @@ export default function SalesPage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Sales Pipeline</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {salesJobs.length} leads
+            {activeLeadCount} active {activeLeadCount === 1 ? "lead" : "leads"}
           </p>
         </div>
 
