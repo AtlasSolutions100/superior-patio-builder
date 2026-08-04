@@ -12,6 +12,7 @@ import { AppShell } from "./components/layout/app-shell";
 
 import LandingPage from "./pages/landing";
 import BoardPage from "./pages/board";
+import SalesPage from "./pages/sales";
 import ListPage from "./pages/list";
 import TeamPage from "./pages/team";
 
@@ -280,6 +281,11 @@ function ClerkProviderWithRoutes() {
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
           
+          <Route path="/sales">
+            <AppShell>
+              <SalesPage />
+            </AppShell>
+          </Route>
           <Route path="/board">
             <AppShell>
               <BoardPage />

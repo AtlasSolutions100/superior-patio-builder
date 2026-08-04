@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "wouter";
-import { KanbanSquare, Table2, Users, LayoutDashboard, LogOut, Loader2 } from "lucide-react";
+import { KanbanSquare, Table2, Users, LayoutDashboard, LogOut, Loader2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClerk } from "@clerk/react";
 import { toast } from "sonner";
@@ -44,6 +44,7 @@ export function AppShell({ children }: AppShellProps) {
   };
 
   const links = [
+    { href: "/sales", label: "Sales Pipeline", icon: TrendingUp },
     { href: "/board", label: "Kanban Board", icon: KanbanSquare },
     { href: "/list", label: "Job List", icon: Table2 },
     { href: "/team", label: "Team Access", icon: Users, adminOnly: true },
