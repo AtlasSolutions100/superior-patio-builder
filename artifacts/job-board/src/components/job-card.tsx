@@ -14,6 +14,7 @@ import {
 import { Job, JobStage, useGetCurrentUser } from "@workspace/api-client-react";
 import { JobDialog } from "./job-dialog";
 import { MoveStageDialog } from "./move-stage-dialog";
+import { toTelHref, formatPhoneInput } from "@/lib/phone";
 
 const MOVE_GROUPS: { label: string; stages: string[] }[] = [
   { label: "Pipeline", stages: [...PIPELINE_STAGES] },
@@ -90,15 +91,21 @@ export default function JobCard({
         {variant === "lead" ? (
           (job.phone || job.source) && (
             <div className="flex items-center justify-between gap-2 text-xs">
-              {job.phone && (
-                <a
-                  href={`tel:${job.phone}`}
-                  className="text-muted-foreground hover:text-primary truncate"
-                  onClick={e => e.stopPropagation()}
-                >
-                  {job.phone}
-                </a>
-              )}
+              {job.phone && (() => {
+                const telHref = toTelHref(job.phone);
+                const display = formatPhoneInput(job.phone);
+                return telHref ? (
+                  <a
+                    href={telHref}
+                    className="text-muted-foreground hover:text-primary truncate"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {display}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground truncate">{display}</span>
+                );
+              })()}
               {job.source && (
                 <span className="ml-auto max-w-[45%] truncate rounded-full bg-accent/60 px-2 py-0.5 text-[11px] text-muted-foreground">
                   {job.source}

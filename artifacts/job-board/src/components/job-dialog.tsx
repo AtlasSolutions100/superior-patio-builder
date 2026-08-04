@@ -9,6 +9,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { STAGE_LABELS } from "@/lib/utils";
+import { formatPhoneInput, isLikelyValidPhone } from "@/lib/phone";
 import { toast } from "sonner";
 import { JobNotes } from "./job-notes";
 
@@ -203,7 +204,32 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
             
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" type="tel" placeholder="(555) 555-1234" {...form.register("phone")} disabled={fieldsDisabled} />
+              <Controller
+                name="phone"
+                control={form.control}
+                render={({ field }) => (
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="(555) 555-1234"
+                    value={field.value ?? ""}
+                    onChange={e => field.onChange(formatPhoneInput(e.target.value))}
+                    onBlur={e => {
+                      field.onChange(formatPhoneInput(e.target.value.trim()));
+                      field.onBlur();
+                    }}
+                    disabled={fieldsDisabled}
+                  />
+                )}
+              />
+              {(() => {
+                const v = form.watch("phone");
+                return v && !isLikelyValidPhone(v) ? (
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    This doesn't look like a full phone number — tap-to-call may not work.
+                  </p>
+                ) : null;
+              })()}
             </div>
 
             <div className="space-y-2 md:col-span-2">
