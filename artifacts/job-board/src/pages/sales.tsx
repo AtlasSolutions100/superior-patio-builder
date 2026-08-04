@@ -85,7 +85,7 @@ export default function SalesPage() {
         </div>
       )}
 
-      <KanbanBoard jobs={salesJobs} groups={SALES_GROUPS} isLoading={isLoading} />
+      <KanbanBoard jobs={salesJobs} groups={SALES_GROUPS} isLoading={isLoading} cardVariant="lead" />
 
       <JobDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>

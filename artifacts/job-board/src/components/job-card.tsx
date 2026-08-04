@@ -22,12 +22,15 @@ const MOVE_GROUPS: { label: string; stages: string[] }[] = [
 
 export default function JobCard({
   job,
+  variant = "job",
   draggable = false,
   isDragging = false,
   onDragStart,
   onDragEnd,
 }: {
   job: Job;
+  /** "lead" shows sales essentials (phone, source) instead of install date/contract. */
+  variant?: "job" | "lead";
   draggable?: boolean;
   isDragging?: boolean;
   onDragStart?: () => void;
@@ -38,7 +41,10 @@ export default function JobCard({
   const [moveStageIntent, setMoveStageIntent] = React.useState<JobStage | null>(null);
 
   const canEdit = user?.role === "admin";
+  // On the sales pipeline, moves are admin-only (techs work installs on the
+  // main board); elsewhere techs keep their Move menu.
   const canTechEdit = user?.role === "tech" || canEdit;
+  const showMoveMenu = variant === "lead" ? canEdit : canTechEdit;
 
   const isLate =
     job.estimatedInstallDate &&
@@ -53,8 +59,12 @@ export default function JobCard({
         draggable={draggable}
         onDragStart={e => {
           if (!draggable) return;
-          e.dataTransfer.effectAllowed = "move";
-          e.dataTransfer.setData("text/plain", String(job.id));
+          // dataTransfer can be absent on synthetic events; drag state must
+          // still be set so drop zones appear.
+          if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", String(job.id));
+          }
           onDragStart?.();
         }}
         onDragEnd={() => onDragEnd?.()}
@@ -77,18 +87,39 @@ export default function JobCard({
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs">
-          <span className={isLate ? "text-destructive font-medium" : "text-muted-foreground"}>
-            {job.estimatedInstallDate
-              ? `Install: ${formatDate(job.estimatedInstallDate)}`
-              : "No install date"}
-          </span>
-          {job.contractAmount != null && (
-            <span className="font-medium text-foreground tabular-nums">
-              ${job.contractAmount.toLocaleString()}
+        {variant === "lead" ? (
+          (job.phone || job.source) && (
+            <div className="flex items-center justify-between gap-2 text-xs">
+              {job.phone && (
+                <a
+                  href={`tel:${job.phone}`}
+                  className="text-muted-foreground hover:text-primary truncate"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {job.phone}
+                </a>
+              )}
+              {job.source && (
+                <span className="ml-auto max-w-[45%] truncate rounded-full bg-accent/60 px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {job.source}
+                </span>
+              )}
+            </div>
+          )
+        ) : (
+          <div className="flex items-center justify-between text-xs">
+            <span className={isLate ? "text-destructive font-medium" : "text-muted-foreground"}>
+              {job.estimatedInstallDate
+                ? `Install: ${formatDate(job.estimatedInstallDate)}`
+                : "No install date"}
             </span>
-          )}
-        </div>
+            {job.contractAmount != null && (
+              <span className="font-medium text-foreground tabular-nums">
+                ${job.contractAmount.toLocaleString()}
+              </span>
+            )}
+          </div>
+        )}
 
         {job.lastNote && (
           <p className="text-xs text-muted-foreground line-clamp-1" title={job.lastNote}>
@@ -96,7 +127,7 @@ export default function JobCard({
           </p>
         )}
 
-        {canTechEdit && (
+        {showMoveMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

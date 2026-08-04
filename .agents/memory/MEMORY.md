@@ -5,3 +5,4 @@
 - [Demo account provisioning](demo-account-provisioning.md) — demo logins self-heal on API startup (pk_test gate); don't hand-seed; removal is blocked, role edits drift until restart.
 - [Clerk Client Trust](clerk-client-trust.md) — password sign-ins trigger device email codes & pwned-password 422s; one-click demo login must use server-minted sign-in tokens + signIn.ticket().
 - [Composite TS builds](composite-ts-builds.md) — after changing lib/* exports, run `npx tsc -b lib/<pkg>` or dependents' typecheck sees stale .d.ts (phantom "no exported member").
+- [QA drag & stale HMR](qa-drag-and-hmr.md) — drag "drop zones missing" test failures: hard-reload page (stale HMR modules) and use real DataTransfer; only demo login buttons give non-viewer roles.

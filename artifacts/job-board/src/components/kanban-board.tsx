@@ -24,10 +24,13 @@ export function KanbanBoard({
   jobs,
   groups,
   isLoading,
+  cardVariant = "job",
 }: {
   jobs: Job[];
   groups: BoardGroup[];
   isLoading?: boolean;
+  /** "lead" renders sales-essentials cards and restricts moves to admins. */
+  cardVariant?: "job" | "lead";
 }) {
   const { data: user } = useGetCurrentUser();
 
@@ -37,7 +40,10 @@ export function KanbanBoard({
   const [draggingJob, setDraggingJob] = React.useState<Job | null>(null);
   const [dropIntent, setDropIntent] = React.useState<{ job: Job; stage: JobStage } | null>(null);
 
-  const canDrag = user?.role === "admin" || user?.role === "tech";
+  // On the sales pipeline, moving leads is admin-only; techs keep dragging
+  // (into Installed) on the main board.
+  const canDrag =
+    user?.role === "admin" || (cardVariant === "job" && user?.role === "tech");
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const pointerX = React.useRef(0);
@@ -122,6 +128,7 @@ export function KanbanBoard({
                 dropStages={droppableStages(group.stages)}
                 onDropStage={handleDrop}
                 canDrag={canDrag}
+                cardVariant={cardVariant}
                 onDragStart={setDraggingJob}
                 onDragEnd={() => setDraggingJob(null)}
               />
@@ -149,6 +156,7 @@ function GroupColumn({
   dropStages,
   onDropStage,
   canDrag,
+  cardVariant,
   onDragStart,
   onDragEnd,
 }: {
@@ -158,6 +166,7 @@ function GroupColumn({
   dropStages: JobStage[];
   onDropStage: (stage: JobStage) => void;
   canDrag: boolean;
+  cardVariant: "job" | "lead";
   onDragStart: (job: Job) => void;
   onDragEnd: () => void;
 }) {
@@ -187,6 +196,7 @@ function GroupColumn({
           <JobCard
             key={job.id}
             job={job}
+            variant={cardVariant}
             draggable={canDrag}
             isDragging={draggingJob?.id === job.id}
             onDragStart={() => onDragStart(job)}
