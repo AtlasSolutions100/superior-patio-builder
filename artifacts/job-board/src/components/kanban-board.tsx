@@ -25,12 +25,17 @@ export function KanbanBoard({
   groups,
   isLoading,
   cardVariant = "job",
+  selectedIds,
+  onToggleSelect,
 }: {
   jobs: Job[];
   groups: BoardGroup[];
   isLoading?: boolean;
   /** "lead" renders sales-essentials cards and restricts moves to admins. */
   cardVariant?: "job" | "lead";
+  /** When onToggleSelect is set, cards enter selection mode (bulk archive). */
+  selectedIds?: Set<number>;
+  onToggleSelect?: (id: number) => void;
 }) {
   const { data: user } = useGetCurrentUser();
 
@@ -43,7 +48,8 @@ export function KanbanBoard({
   // On the sales pipeline, moving leads is admin-only; techs keep dragging
   // (into Installed) on the main board.
   const canDrag =
-    user?.role === "admin" || (cardVariant === "job" && user?.role === "tech");
+    !onToggleSelect &&
+    (user?.role === "admin" || (cardVariant === "job" && user?.role === "tech"));
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const pointerX = React.useRef(0);
@@ -131,6 +137,8 @@ export function KanbanBoard({
                 cardVariant={cardVariant}
                 onDragStart={setDraggingJob}
                 onDragEnd={() => setDraggingJob(null)}
+                selectedIds={selectedIds}
+                onToggleSelect={onToggleSelect}
               />
             ))}
           </div>
@@ -159,6 +167,8 @@ function GroupColumn({
   cardVariant,
   onDragStart,
   onDragEnd,
+  selectedIds,
+  onToggleSelect,
 }: {
   label: string;
   jobs: Job[];
@@ -169,6 +179,8 @@ function GroupColumn({
   cardVariant: "job" | "lead";
   onDragStart: (job: Job) => void;
   onDragEnd: () => void;
+  selectedIds?: Set<number>;
+  onToggleSelect?: (id: number) => void;
 }) {
   const isDropTarget = !!draggingJob && dropStages.length > 0;
 
@@ -201,6 +213,8 @@ function GroupColumn({
             isDragging={draggingJob?.id === job.id}
             onDragStart={() => onDragStart(job)}
             onDragEnd={onDragEnd}
+            selected={selectedIds?.has(job.id) ?? false}
+            onToggleSelect={onToggleSelect ? () => onToggleSelect(job.id) : undefined}
           />
         ))}
         {jobs.length === 0 && (

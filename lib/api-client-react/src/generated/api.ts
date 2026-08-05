@@ -22,6 +22,8 @@ import type {
 import type {
   AppUser,
   BoardSummary,
+  BulkArchiveRequest,
+  BulkArchiveResult,
   CurrentUser,
   ErrorMessage,
   HealthStatus,
@@ -957,6 +959,77 @@ export const useCreateJob = <TError = ErrorType<ErrorMessage>,
         TContext
       > => {
       return useMutation(getCreateJobMutationOptions(options));
+    }
+
+export const getBulkArchiveJobsUrl = () => {
+
+
+
+
+  return `/api/jobs/bulk-archive`
+}
+
+/**
+ * @summary Archive many leads at once by age or explicit ids (full-access only); dryRun previews the count
+ */
+export const bulkArchiveJobs = async (bulkArchiveRequest: BulkArchiveRequest, options?: Parameters<typeof customFetch>[1]): Promise<BulkArchiveResult> => {
+
+  return customFetch<BulkArchiveResult>(getBulkArchiveJobsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkArchiveRequest)
+  }
+);}
+
+
+
+
+
+export const getBulkArchiveJobsMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkArchiveJobs>>, TError,{data: BodyType<BulkArchiveRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkArchiveJobs>>, TError,{data: BodyType<BulkArchiveRequest>}, TContext> => {
+
+const mutationKey = ['bulkArchiveJobs'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkArchiveJobs>>, {data: BodyType<BulkArchiveRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkArchiveJobs(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkArchiveJobsMutationResult = NonNullable<Awaited<ReturnType<typeof bulkArchiveJobs>>>
+    export type BulkArchiveJobsMutationBody = BodyType<BulkArchiveRequest>
+    export type BulkArchiveJobsMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Archive many leads at once by age or explicit ids (full-access only); dryRun previews the count
+ */
+export const useBulkArchiveJobs = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkArchiveJobs>>, TError,{data: BodyType<BulkArchiveRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkArchiveJobs>>,
+        TError,
+        {data: BodyType<BulkArchiveRequest>},
+        TContext
+      > => {
+      return useMutation(getBulkArchiveJobsMutationOptions(options));
     }
 
 export const getGetJobUrl = (id: number,) => {

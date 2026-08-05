@@ -367,6 +367,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
+  /jobs/bulk-archive:
+    post:
+      operationId: bulkArchiveJobs
+      tags: [jobs]
+      summary: Archive many leads at once by age or explicit ids (full-access only); dryRun previews the count
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkArchiveRequest"
+      responses:
+        "200":
+          description: Number of leads archived (or that would be, when dryRun)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkArchiveResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
   /jobs/{id}:
     get:
       operationId: getJob
@@ -702,6 +732,30 @@ components:
           type: string
       required:
         - error
+    BulkArchiveRequest:
+      type: object
+      description: Provide exactly one of jobIds or olderThanDays
+      properties:
+        jobIds:
+          type: array
+          items:
+            type: integer
+          description: Explicit jobs to archive (any sales-pipeline stage)
+        olderThanDays:
+          type: integer
+          minimum: 1
+          description: Archive New Lead jobs whose lead date is older than this many days (imported leads use their spreadsheet date)
+        dryRun:
+          type: boolean
+          description: When true, only count matching leads without archiving
+    BulkArchiveResult:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Leads archived, or matching leads when dryRun
+      required:
+        - count
     LeadSyncStatus:
       type: object
       description: One-way spreadsheet lead import status

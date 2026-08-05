@@ -29,6 +29,8 @@ export default function JobCard({
   isDragging = false,
   onDragStart,
   onDragEnd,
+  selected = false,
+  onToggleSelect,
 }: {
   job: Job;
   /** "lead" shows sales essentials (phone, source) instead of install date/contract. */
@@ -37,6 +39,9 @@ export default function JobCard({
   isDragging?: boolean;
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  /** Selection mode (bulk archive): clicking toggles instead of editing. */
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const { data: user } = useGetCurrentUser();
   const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -61,9 +66,10 @@ export default function JobCard({
   return (
     <>
       <Card
-        draggable={draggable}
+        draggable={draggable && !onToggleSelect}
+        onClick={onToggleSelect}
         onDragStart={e => {
-          if (!draggable) return;
+          if (!draggable || onToggleSelect) return;
           // dataTransfer can be absent on synthetic events; drag state must
           // still be set so drop zones appear.
           if (e.dataTransfer) {
@@ -75,8 +81,30 @@ export default function JobCard({
         onDragEnd={() => onDragEnd?.()}
         className={`flex flex-col rounded-xl p-4 gap-3 shadow-none ${
           isConverted ? "bg-muted/50 border-border/50" : "bg-card border-border/70"
-        } ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${isDragging ? "opacity-40" : ""}`}
+        } ${draggable && !onToggleSelect ? "cursor-grab active:cursor-grabbing" : ""} ${
+          isDragging ? "opacity-40" : ""
+        } ${
+          onToggleSelect
+            ? `cursor-pointer ${selected ? "border-primary ring-1 ring-primary" : "hover:border-primary/40"}`
+            : ""
+        }`}
       >
+        {onToggleSelect && (
+          <div className="flex items-center gap-1.5 text-[11px] font-medium -mb-1.5">
+            <span
+              className={`inline-flex h-4 w-4 items-center justify-center rounded border ${
+                selected
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "border-muted-foreground/40"
+              }`}
+            >
+              {selected && <CheckCircle2 className="h-3 w-3" />}
+            </span>
+            <span className={selected ? "text-primary" : "text-muted-foreground"}>
+              {selected ? "Selected" : "Tap to select"}
+            </span>
+          </div>
+        )}
         <div className="min-w-0">
           {isConverted ? (
             <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-500 mb-1">
@@ -90,7 +118,7 @@ export default function JobCard({
           )}
           <h4
             className="font-medium text-sm text-foreground truncate cursor-pointer hover:text-primary"
-            onClick={() => setIsEditOpen(true)}
+            onClick={() => !onToggleSelect && setIsEditOpen(true)}
           >
             {job.customerName}
           </h4>

@@ -248,6 +248,23 @@ export const CreateJobResponse = zod.object({
 
 
 /**
+ * @summary Archive many leads at once by age or explicit ids (full-access only); dryRun previews the count
+ */
+
+
+
+export const BulkArchiveJobsBody = zod.object({
+  "jobIds": zod.array(zod.int()).optional().describe('Explicit jobs to archive (any sales-pipeline stage)'),
+  "olderThanDays": zod.int().min(1).optional().describe('Archive New Lead jobs whose lead date is older than this many days (imported leads use their spreadsheet date)'),
+  "dryRun": zod.boolean().optional().describe('When true, only count matching leads without archiving')
+}).describe('Provide exactly one of jobIds or olderThanDays')
+
+export const BulkArchiveJobsResponse = zod.object({
+  "count": zod.int().describe('Leads archived, or matching leads when dryRun')
+})
+
+
+/**
  * @summary Get a single job
  */
 export const GetJobParams = zod.object({

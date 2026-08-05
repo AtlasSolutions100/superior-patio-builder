@@ -4,12 +4,21 @@ import {
   useGetCurrentUser,
   useGetLeadSyncStatus,
   useRunLeadSync,
+  useBulkArchiveJobs,
   Job,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SALES_STAGES, PIPELINE_STAGES, STAGE_LABELS } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, AlertTriangle, RefreshCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, Plus, AlertTriangle, RefreshCw, Archive, X } from "lucide-react";
 import { JobDialog } from "@/components/job-dialog";
 import { KanbanBoard, BoardGroup } from "@/components/kanban-board";
 
@@ -52,6 +61,65 @@ export default function SalesPage() {
   });
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+
+  // Bulk cleanup: "older than N days" dialog + card multi-select mode.
+  const [isCleanupOpen, setIsCleanupOpen] = React.useState(false);
+  const [olderThanDays, setOlderThanDays] = React.useState(60);
+  const [previewCount, setPreviewCount] = React.useState<number | null>(null);
+  const [selectMode, setSelectMode] = React.useState(false);
+  const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
+
+  const bulkArchive = useBulkArchiveJobs();
+  const preview = useBulkArchiveJobs();
+
+  // Refresh the preview count whenever the dialog is open for a given cutoff.
+  // The request id guards against out-of-order responses when toggling
+  // 30/60/90 quickly — only the latest request may set the count.
+  const previewReqId = React.useRef(0);
+  React.useEffect(() => {
+    if (!isCleanupOpen) return;
+    const reqId = ++previewReqId.current;
+    setPreviewCount(null);
+    preview.mutate(
+      { data: { olderThanDays, dryRun: true } },
+      {
+        onSuccess: r => {
+          if (previewReqId.current === reqId) setPreviewCount(r.count);
+        },
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCleanupOpen, olderThanDays]);
+
+  const finishBulk = () => {
+    setIsCleanupOpen(false);
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    void queryClient.invalidateQueries();
+  };
+
+  const archiveByAge = () => {
+    bulkArchive.mutate(
+      { data: { olderThanDays } },
+      { onSuccess: finishBulk },
+    );
+  };
+
+  const archiveSelected = () => {
+    bulkArchive.mutate(
+      { data: { jobIds: Array.from(selectedIds) } },
+      { onSuccess: finishBulk },
+    );
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const salesJobs = React.useMemo<Job[]>(
     () =>
@@ -100,7 +168,40 @@ export default function SalesPage() {
           </p>
         </div>
 
-        {isAdmin && (
+        {isAdmin && selectMode && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size} selected
+            </span>
+            <Button
+              size="sm"
+              className="h-8"
+              onClick={archiveSelected}
+              disabled={selectedIds.size === 0 || bulkArchive.isPending}
+            >
+              {bulkArchive.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Archive className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              Archive selected
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => {
+                setSelectMode(false);
+                setSelectedIds(new Set());
+              }}
+            >
+              <X className="w-3.5 h-3.5 mr-1.5" />
+              Cancel
+            </Button>
+          </div>
+        )}
+
+        {isAdmin && !selectMode && (
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               {syncStatus?.lastError ? (
@@ -130,6 +231,15 @@ export default function SalesPage() {
                 )}
                 Sync now
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => setIsCleanupOpen(true)}
+              >
+                <Archive className="w-3.5 h-3.5 mr-1.5" />
+                Clean up
+              </Button>
             </div>
             <Button onClick={() => setIsCreateOpen(true)} size="sm" className="h-8">
               <Plus className="w-4 h-4 mr-1.5" />
@@ -158,9 +268,84 @@ export default function SalesPage() {
         </div>
       )}
 
-      <KanbanBoard jobs={salesJobs} groups={SALES_GROUPS} isLoading={isLoading} cardVariant="lead" />
+      <KanbanBoard
+        jobs={salesJobs}
+        groups={SALES_GROUPS}
+        isLoading={isLoading}
+        cardVariant="lead"
+        selectedIds={selectMode ? selectedIds : undefined}
+        onToggleSelect={selectMode ? toggleSelect : undefined}
+      />
 
       <JobDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+
+      <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Clean up old leads</DialogTitle>
+            <DialogDescription>
+              Archives New Lead cards older than the cutoff. Nothing is deleted —
+              archived leads stay in the Archived view and can be restored anytime.
+              Scheduled, Bid Given, and Sold are not touched.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              {[30, 60, 90].map(days => (
+                <Button
+                  key={days}
+                  variant={olderThanDays === days ? "default" : "outline"}
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setOlderThanDays(days)}
+                >
+                  Older than {days} days
+                </Button>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {preview.isPending || previewCount === null ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Counting…
+                </span>
+              ) : (
+                <>
+                  <span className="font-semibold text-foreground">{previewCount}</span>{" "}
+                  {previewCount === 1 ? "lead" : "leads"} will be archived.
+                </>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Prefer to hand-pick?{" "}
+              <button
+                className="font-medium text-primary hover:underline"
+                onClick={() => {
+                  setIsCleanupOpen(false);
+                  setSelectMode(true);
+                }}
+              >
+                Select leads on the board instead
+              </button>
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCleanupOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={archiveByAge}
+              disabled={bulkArchive.isPending || !previewCount}
+            >
+              {bulkArchive.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
+              Archive {previewCount ?? ""} {previewCount === 1 ? "lead" : "leads"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

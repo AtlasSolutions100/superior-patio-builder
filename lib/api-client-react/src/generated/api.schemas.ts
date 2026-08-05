@@ -14,6 +14,26 @@ export interface ErrorMessage {
 }
 
 /**
+ * Provide exactly one of jobIds or olderThanDays
+ */
+export interface BulkArchiveRequest {
+  /** Explicit jobs to archive (any sales-pipeline stage) */
+  jobIds?: number[];
+  /**
+     * Archive New Lead jobs whose lead date is older than this many days (imported leads use their spreadsheet date)
+     * @minimum 1
+     */
+  olderThanDays?: number;
+  /** When true, only count matching leads without archiving */
+  dryRun?: boolean;
+}
+
+export interface BulkArchiveResult {
+  /** Leads archived, or matching leads when dryRun */
+  count: number;
+}
+
+/**
  * One-way spreadsheet lead import status
  */
 export interface LeadSyncStatus {

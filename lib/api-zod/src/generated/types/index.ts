@@ -8,6 +8,8 @@
 
 export * from './appUser';
 export * from './boardSummary';
+export * from './bulkArchiveRequest';
+export * from './bulkArchiveResult';
 export * from './currentUser';
 export * from './errorMessage';
 export * from './healthStatus';

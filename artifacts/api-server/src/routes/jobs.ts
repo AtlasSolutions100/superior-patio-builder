@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, ilike, gte, lte, or, sql, asc, desc, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, ilike, gte, lte, or, sql, asc, desc, isNull, isNotNull, inArray } from "drizzle-orm";
 import {
   db,
   jobsTable,
@@ -30,6 +30,8 @@ import {
   AddJobNoteParams,
   AddJobNoteBody,
   AddJobNoteResponse,
+  BulkArchiveJobsBody,
+  BulkArchiveJobsResponse,
 } from "@workspace/api-zod";
 import { requireUser, requireAdmin } from "../middlewares/auth";
 
@@ -348,6 +350,76 @@ router.delete(
     }
 
     res.sendStatus(204);
+  },
+);
+
+router.post(
+  "/jobs/bulk-archive",
+  requireUser,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const body = BulkArchiveJobsBody.safeParse(req.body);
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+    const { jobIds, olderThanDays, dryRun } = body.data;
+    if ((jobIds == null) === (olderThanDays == null)) {
+      res
+        .status(400)
+        .json({ error: "Provide exactly one of jobIds or olderThanDays" });
+      return;
+    }
+
+    let where;
+    if (jobIds != null) {
+      if (jobIds.length === 0) {
+        res.json(BulkArchiveJobsResponse.parse({ count: 0 }));
+        return;
+      }
+      // Explicit selection: any active sales-pipeline lead the admin picked.
+      where = and(
+        isNull(jobsTable.archivedAt),
+        inArray(jobsTable.id, jobIds),
+        // Sales-pipeline stages only — the bulk tool is for leads, not
+        // operational jobs on the main board.
+        inArray(jobsTable.stage, ["new_lead", "scheduled", "bid_given", "sold"]),
+      );
+    } else {
+      // Age cutoff: only New Lead — Scheduled/Bid Given/Sold stay untouched.
+      // A lead's real age is its spreadsheet submission date when it was
+      // imported (ledger keys start with "YYYY-MM-DD HH:MM:SS|"); manual
+      // leads fall back to when they were created in the app.
+      const leadDate = sql`COALESCE(
+        (SELECT CASE WHEN split_part(li.dedupe_key, '|', 1) ~ '^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}:\\d{2})?$'
+                     AND pg_input_is_valid(split_part(li.dedupe_key, '|', 1), 'timestamptz')
+                     THEN split_part(li.dedupe_key, '|', 1)::timestamptz END
+         FROM lead_imports li WHERE li.job_id = ${jobsTable.id} LIMIT 1),
+        ${jobsTable.createdAt}
+      )`;
+      where = and(
+        isNull(jobsTable.archivedAt),
+        eq(jobsTable.stage, "new_lead"),
+        sql`${leadDate} < NOW() - make_interval(days => ${olderThanDays})`,
+      );
+    }
+
+    if (dryRun) {
+      const [row] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(jobsTable)
+        .where(where);
+      res.json(BulkArchiveJobsResponse.parse({ count: row?.count ?? 0 }));
+      return;
+    }
+
+    // Same idempotent archive as the single-job endpoint; nothing is deleted.
+    const archived = await db
+      .update(jobsTable)
+      .set({ archivedAt: sql`COALESCE(${jobsTable.archivedAt}, NOW())` })
+      .where(where)
+      .returning({ id: jobsTable.id });
+    res.json(BulkArchiveJobsResponse.parse({ count: archived.length }));
   },
 );
 
