@@ -196,6 +196,7 @@ export const ListJobsResponseItem = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -242,6 +243,7 @@ export const CreateJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -288,6 +290,7 @@ export const GetJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -336,6 +339,7 @@ export const UpdateJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -380,6 +384,7 @@ export const MoveJobStageResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -409,6 +414,7 @@ export const ArchiveJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -438,6 +444,7 @@ export const UnarchiveJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -541,6 +548,7 @@ export const GetBoardSummaryResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })).describe('Next 5 jobs by soonest estimated install date (not yet installed)')

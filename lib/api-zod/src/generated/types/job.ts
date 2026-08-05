@@ -39,6 +39,11 @@ export interface Job {
      * @nullable
      */
   archivedAt?: string | null;
+  /**
+     * When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.
+     * @nullable
+     */
+  leadDate?: string | null;
   createdAt: string;
   updatedAt: string;
 }

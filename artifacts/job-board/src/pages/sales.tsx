@@ -18,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, AlertTriangle, RefreshCw, Archive, X } from "lucide-react";
+import { Loader2, Plus, AlertTriangle, RefreshCw, Archive, X, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { JobDialog } from "@/components/job-dialog";
 import { KanbanBoard, BoardGroup } from "@/components/kanban-board";
 
@@ -121,6 +122,22 @@ export default function SalesPage() {
     });
   };
 
+  // Pipeline filters — all applied client-side on the loaded leads.
+  const [fltStage, setFltStage] = React.useState("");
+  const [fltSource, setFltSource] = React.useState("");
+  const [fltFrom, setFltFrom] = React.useState("");
+  const [fltTo, setFltTo] = React.useState("");
+  const [fltSearch, setFltSearch] = React.useState("");
+
+  const hasFilters = !!(fltStage || fltSource || fltFrom || fltTo || fltSearch);
+  const clearFilters = () => {
+    setFltStage("");
+    setFltSource("");
+    setFltFrom("");
+    setFltTo("");
+    setFltSearch("");
+  };
+
   const salesJobs = React.useMemo<Job[]>(
     () =>
       (jobs || []).filter(job =>
@@ -129,6 +146,36 @@ export default function SalesPage() {
     [jobs]
   );
 
+  // Distinct sources present on the pipeline, for the Source dropdown.
+  const sourceOptions = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const j of salesJobs) if (j.source?.trim()) set.add(j.source.trim());
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [salesJobs]);
+
+  const filteredJobs = React.useMemo<Job[]>(() => {
+    const term = fltSearch.trim().toLowerCase();
+    const termDigits = term.replace(/\D/g, "");
+    return salesJobs.filter(job => {
+      if (fltStage && job.stage !== fltStage) return false;
+      if (fltSource && (job.source?.trim() ?? "") !== fltSource) return false;
+      if (fltFrom || fltTo) {
+        // leadDate is the real came-in date (sheet date for imported leads).
+        const day = (job.leadDate ?? job.createdAt).slice(0, 10);
+        if (fltFrom && day < fltFrom) return false;
+        if (fltTo && day > fltTo) return false;
+      }
+      if (term) {
+        const nameHit = job.customerName.toLowerCase().includes(term);
+        const phoneHit =
+          termDigits.length > 0 &&
+          (job.phone ?? "").replace(/\D/g, "").includes(termDigits);
+        if (!nameHit && !phoneHit) return false;
+      }
+      return true;
+    });
+  }, [salesJobs, fltStage, fltSource, fltFrom, fltTo, fltSearch]);
+
   // Header counts active leads only — Sold jobs are converted, not leads.
   const activeLeadCount = React.useMemo(
     () =>
@@ -136,6 +183,13 @@ export default function SalesPage() {
         (PIPELINE_STAGES as readonly string[]).includes(job.stage)
       ).length,
     [salesJobs]
+  );
+  const shownLeadCount = React.useMemo(
+    () =>
+      filteredJobs.filter(job =>
+        (PIPELINE_STAGES as readonly string[]).includes(job.stage)
+      ).length,
+    [filteredJobs]
   );
 
   if (error && !jobs) {
@@ -164,7 +218,9 @@ export default function SalesPage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Sales Pipeline</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {activeLeadCount} active {activeLeadCount === 1 ? "lead" : "leads"}
+            {hasFilters
+              ? `${shownLeadCount} of ${activeLeadCount} active ${activeLeadCount === 1 ? "lead" : "leads"} shown`
+              : `${activeLeadCount} active ${activeLeadCount === 1 ? "lead" : "leads"}`}
           </p>
         </div>
 
@@ -249,6 +305,71 @@ export default function SalesPage() {
         )}
       </div>
 
+      <div className="flex-none px-6 pb-3 flex flex-wrap items-center gap-2">
+        <div className="relative w-48">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Name or phone…"
+            className="pl-8 h-8 text-sm"
+            value={fltSearch}
+            onChange={e => setFltSearch(e.target.value)}
+          />
+        </div>
+        <select
+          className="flex h-8 rounded-md border border-input bg-background px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          value={fltStage}
+          onChange={e => setFltStage(e.target.value)}
+        >
+          <option value="">All stages</option>
+          {SALES_STAGES.map(s => (
+            <option key={s} value={s}>
+              {STAGE_LABELS[s] ?? s}
+            </option>
+          ))}
+        </select>
+        <select
+          className="flex h-8 max-w-[11rem] rounded-md border border-input bg-background px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          value={fltSource}
+          onChange={e => setFltSource(e.target.value)}
+        >
+          <option value="">All sources</option>
+          {sourceOptions.map(s => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="hidden sm:inline">Came in</span>
+          <Input
+            type="date"
+            className="h-8 w-[8.5rem] text-sm"
+            value={fltFrom}
+            onChange={e => setFltFrom(e.target.value)}
+            title="Leads that came in on or after this date"
+          />
+          <span>–</span>
+          <Input
+            type="date"
+            className="h-8 w-[8.5rem] text-sm"
+            value={fltTo}
+            onChange={e => setFltTo(e.target.value)}
+            title="Leads that came in on or before this date"
+          />
+        </div>
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs text-muted-foreground"
+            onClick={clearFilters}
+          >
+            <X className="w-3.5 h-3.5 mr-1" />
+            Clear filters
+          </Button>
+        )}
+      </div>
+
       {error && jobs && (
         <div className="flex-none mx-6 mb-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
@@ -269,7 +390,7 @@ export default function SalesPage() {
       )}
 
       <KanbanBoard
-        jobs={salesJobs}
+        jobs={filteredJobs}
         groups={SALES_GROUPS}
         isLoading={isLoading}
         cardVariant="lead"

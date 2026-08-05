@@ -48,6 +48,22 @@ function toApi(job: Job) {
   };
 }
 
+/**
+ * When the lead actually came in: the spreadsheet submission date recorded in
+ * the import ledger (dedupe keys start with "YYYY-MM-DD HH:MM:SS|") when the
+ * job was imported, falling back to the record's created-at for manual leads.
+ */
+// NOTE: the correlated column must be written fully qualified ("jobs"."id")
+// — drizzle renders `${jobsTable.id}` unqualified in a SELECT-field context,
+// which would silently bind to lead_imports' own id inside the subquery.
+const leadDateSql = sql<string | null>`COALESCE(
+  (SELECT CASE WHEN split_part(li.dedupe_key, '|', 1) ~ '^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}:\\d{2})?$'
+               AND pg_input_is_valid(split_part(li.dedupe_key, '|', 1), 'timestamptz')
+               THEN split_part(li.dedupe_key, '|', 1)::timestamptz END
+   FROM lead_imports li WHERE li.job_id = "jobs"."id" LIMIT 1),
+  ${jobsTable.createdAt}
+)`;
+
 /** estimatedInstallDate ascending, nulls last, then customer name. */
 const installDateOrder = [
   sql`${jobsTable.estimatedInstallDate} ASC NULLS LAST`,
@@ -87,13 +103,20 @@ router.get("/jobs", requireUser, async (req, res): Promise<void> => {
     );
   }
 
-  const jobs = await db
-    .select()
+  const rows = await db
+    .select({ job: jobsTable, leadDate: leadDateSql })
     .from(jobsTable)
     .where(and(...conditions))
     .orderBy(...installDateOrder);
 
-  res.json(ListJobsResponse.parse(jobs.map(toApi)));
+  res.json(
+    ListJobsResponse.parse(
+      rows.map(({ job, leadDate }) => ({
+        ...toApi(job),
+        leadDate: leadDate == null ? null : new Date(leadDate).toISOString(),
+      })),
+    ),
+  );
 });
 
 router.post("/jobs", requireUser, requireAdmin, async (req, res): Promise<void> => {
@@ -638,14 +661,20 @@ router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => 
 });
 
 router.get("/summary", requireUser, async (_req, res): Promise<void> => {
-  const jobs = await db
+  const allActive = await db
     .select()
     .from(jobsTable)
     .where(isNull(jobsTable.archivedAt))
     .orderBy(...installDateOrder);
 
+  // Header metrics count real jobs only — leads (pre-Sold) live on the
+  // Sales Pipeline and must not inflate Active Jobs / Pipeline $ / installs.
+  const jobs = allActive.filter((j) =>
+    POST_SOLD_STAGES.includes(j.stage as JobStage),
+  );
+
   const byStage = JOB_STAGES.map((stage) => {
-    const inStage = jobs.filter((j) => j.stage === stage);
+    const inStage = allActive.filter((j) => j.stage === stage);
     return {
       stage,
       count: inStage.length,

@@ -920,6 +920,9 @@ components:
         archivedAt:
           type: ["string", "null"]
           description: When set, the job is archived and hidden from the main views.
+        leadDate:
+          type: ["string", "null"]
+          description: When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.
         createdAt:
           type: string
         updatedAt:

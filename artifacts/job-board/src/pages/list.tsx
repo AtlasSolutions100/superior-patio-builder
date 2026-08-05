@@ -12,7 +12,7 @@ import {
   Job,
   JobStage,
 } from "@workspace/api-client-react";
-import { STAGE_LABELS } from "@/lib/utils";
+import { STAGE_LABELS, OPERATIONAL_STAGES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -174,7 +174,14 @@ export default function ListPage() {
 
   const { data: jobs, isLoading, error, refetch, isRefetching } = useListJobs({
     search: debouncedFilters.search || undefined,
-    stage: debouncedFilters.stage ? (debouncedFilters.stage as any) : undefined,
+    // Ignore a stale saved pre-sold stage filter — those stages no longer
+    // exist on the Job List (leads live on the Sales Pipeline).
+    stage:
+      debouncedFilters.stage &&
+      (showArchived ||
+        (OPERATIONAL_STAGES as readonly string[]).includes(debouncedFilters.stage))
+        ? (debouncedFilters.stage as any)
+        : undefined,
     city: debouncedFilters.city || undefined,
     coverType: debouncedFilters.coverType || undefined,
     dateFrom: debouncedFilters.dateFrom || undefined,
@@ -184,6 +191,14 @@ export default function ListPage() {
 
   const sortedJobs = React.useMemo(() => {
     if (!jobs) return jobs;
+    // The Job List is real jobs only (Sold and later) — leads live on the
+    // Sales Pipeline. The Archived view still shows every archived record so
+    // archived leads stay reachable and restorable.
+    const visible = showArchived
+      ? jobs
+      : jobs.filter((j) =>
+          (OPERATIONAL_STAGES as readonly string[]).includes(j.stage),
+        );
     const dir = sort.dir === "asc" ? 1 : -1;
     const cmp = (a: Job, b: Job): number => {
       switch (sort.key) {
@@ -212,8 +227,8 @@ export default function ListPage() {
         }
       }
     };
-    return [...jobs].sort(cmp);
-  }, [jobs, sort]);
+    return [...visible].sort(cmp);
+  }, [jobs, sort, showArchived]);
 
   const toggleSort = (key: SortKey) => {
     setSort((s) =>
@@ -306,9 +321,12 @@ export default function ListPage() {
             onChange={(e) => setFilters((f) => ({ ...f, stage: e.target.value }))}
           >
             <option value="">All Stages</option>
-            {Object.entries(STAGE_LABELS).map(([val, label]) => (
+            {(showArchived
+              ? Object.keys(STAGE_LABELS)
+              : (OPERATIONAL_STAGES as readonly string[])
+            ).map((val) => (
               <option key={val} value={val}>
-                {label}
+                {STAGE_LABELS[val] ?? val}
               </option>
             ))}
           </select>
