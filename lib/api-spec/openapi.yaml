@@ -14,6 +14,8 @@ tags:
     description: Job tracking operations
   - name: users
     description: User and role operations
+  - name: feedback
+    description: Team feedback notes
 paths:
   /healthz:
     get:
@@ -716,8 +718,83 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BoardSummary"
+  /feedback:
+    get:
+      operationId: listFeedback
+      tags: [feedback]
+      summary: List submitted feedback, newest first (full-access only)
+      responses:
+        "200":
+          description: Feedback entries newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Feedback"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    post:
+      operationId: submitFeedback
+      tags: [feedback]
+      summary: Submit a feedback note (any signed-in user)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "201":
+          description: Saved feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feedback"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
 components:
   schemas:
+    FeedbackInput:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: The feedback note text
+        page:
+          type: string
+          maxLength: 200
+          description: App page the user was on when sending feedback
+      required:
+        - message
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: integer
+        message:
+          type: string
+        page:
+          type: [string, "null"]
+        authorName:
+          type: string
+          description: Snapshot of the sender's name at submit time
+        authorRole:
+          type: [string, "null"]
+          description: Snapshot of the sender's role at submit time
+        createdAt:
+          type: string
+      required: [id, message, page, authorName, authorRole, createdAt]
     HealthStatus:
       type: object
       properties:

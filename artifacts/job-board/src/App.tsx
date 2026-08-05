@@ -15,6 +15,7 @@ import BoardPage from "./pages/board";
 import SalesPage from "./pages/sales";
 import ListPage from "./pages/list";
 import TeamPage from "./pages/team";
+import FeedbackPage from "./pages/feedback";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -320,6 +321,11 @@ function ClerkProviderWithRoutes() {
           <Route path="/team">
             <AppShell>
               <TeamPage />
+            </AppShell>
+          </Route>
+          <Route path="/feedback">
+            <AppShell>
+              <FeedbackPage />
             </AppShell>
           </Route>
           <Route>

@@ -26,6 +26,8 @@ import type {
   BulkArchiveResult,
   CurrentUser,
   ErrorMessage,
+  Feedback,
+  FeedbackInput,
   HealthStatus,
   Job,
   JobInput,
@@ -1916,4 +1918,152 @@ export function useGetBoardSummary<TData = Awaited<ReturnType<typeof getBoardSum
 
 
 
+
+export const getListFeedbackUrl = () => {
+
+
+
+
+  return `/api/feedback`
+}
+
+/**
+ * @summary List submitted feedback, newest first (full-access only)
+ */
+export const listFeedback = async ( options?: Parameters<typeof customFetch>[1]): Promise<Feedback[]> => {
+
+  return customFetch<Feedback[]>(getListFeedbackUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListFeedbackQueryKey = () => {
+    return [
+    `/api/feedback`
+    ] as const;
+    }
+
+
+export const getListFeedbackQueryOptions = <TData = Awaited<ReturnType<typeof listFeedback>>, TError = ErrorType<ErrorMessage>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFeedbackQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFeedback>>> = ({ signal }) => listFeedback({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFeedback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListFeedbackQueryResult = NonNullable<Awaited<ReturnType<typeof listFeedback>>>
+export type ListFeedbackQueryError = ErrorType<ErrorMessage>
+
+
+/**
+ * @summary List submitted feedback, newest first (full-access only)
+ */
+
+export function useListFeedback<TData = Awaited<ReturnType<typeof listFeedback>>, TError = ErrorType<ErrorMessage>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListFeedbackQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitFeedbackUrl = () => {
+
+
+
+
+  return `/api/feedback`
+}
+
+/**
+ * @summary Submit a feedback note (any signed-in user)
+ */
+export const submitFeedback = async (feedbackInput: FeedbackInput, options?: Parameters<typeof customFetch>[1]): Promise<Feedback> => {
+
+  return customFetch<Feedback>(getSubmitFeedbackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(feedbackInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitFeedbackMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitFeedback>>, TError,{data: BodyType<FeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitFeedback>>, TError,{data: BodyType<FeedbackInput>}, TContext> => {
+
+const mutationKey = ['submitFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitFeedback>>, {data: BodyType<FeedbackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitFeedback(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof submitFeedback>>>
+    export type SubmitFeedbackMutationBody = BodyType<FeedbackInput>
+    export type SubmitFeedbackMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Submit a feedback note (any signed-in user)
+ */
+export const useSubmitFeedback = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitFeedback>>, TError,{data: BodyType<FeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitFeedback>>,
+        TError,
+        {data: BodyType<FeedbackInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitFeedbackMutationOptions(options));
+    }
 

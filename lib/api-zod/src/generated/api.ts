@@ -555,3 +555,41 @@ export const GetBoardSummaryResponse = zod.object({
 })
 
 
+/**
+ * @summary List submitted feedback, newest first (full-access only)
+ */
+export const ListFeedbackResponseItem = zod.object({
+  "id": zod.int(),
+  "message": zod.string(),
+  "page": zod.string().nullable(),
+  "authorName": zod.string().describe('Snapshot of the sender\'s name at submit time'),
+  "authorRole": zod.string().nullable().describe('Snapshot of the sender\'s role at submit time'),
+  "createdAt": zod.string()
+})
+export const ListFeedbackResponse = zod.array(ListFeedbackResponseItem)
+
+
+/**
+ * @summary Submit a feedback note (any signed-in user)
+ */
+export const submitFeedbackBodyMessageMax = 2000;
+
+export const submitFeedbackBodyPageMax = 200;
+
+
+
+export const SubmitFeedbackBody = zod.object({
+  "message": zod.string().min(1).max(submitFeedbackBodyMessageMax).describe('The feedback note text'),
+  "page": zod.string().max(submitFeedbackBodyPageMax).optional().describe('App page the user was on when sending feedback')
+})
+
+export const SubmitFeedbackResponse = zod.object({
+  "id": zod.int(),
+  "message": zod.string(),
+  "page": zod.string().nullable(),
+  "authorName": zod.string().describe('Snapshot of the sender\'s name at submit time'),
+  "authorRole": zod.string().nullable().describe('Snapshot of the sender\'s role at submit time'),
+  "createdAt": zod.string()
+})
+
+

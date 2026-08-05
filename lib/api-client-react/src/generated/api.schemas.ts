@@ -5,6 +5,35 @@
  * Superior Patio Covers Job Board API
  * OpenAPI spec version: 0.1.0
  */
+export interface FeedbackInput {
+  /**
+     * The feedback note text
+     * @minLength 1
+     * @maxLength 2000
+     */
+  message: string;
+  /**
+     * App page the user was on when sending feedback
+     * @maxLength 200
+     */
+  page?: string;
+}
+
+export interface Feedback {
+  id: number;
+  message: string;
+  /** @nullable */
+  page: string | null;
+  /** Snapshot of the sender's name at submit time */
+  authorName: string;
+  /**
+     * Snapshot of the sender's role at submit time
+     * @nullable
+     */
+  authorRole: string | null;
+  createdAt: string;
+}
+
 export interface HealthStatus {
   status: string;
 }

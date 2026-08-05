@@ -12,6 +12,8 @@ export * from './bulkArchiveRequest';
 export * from './bulkArchiveResult';
 export * from './currentUser';
 export * from './errorMessage';
+export * from './feedback';
+export * from './feedbackInput';
 export * from './healthStatus';
 export * from './job';
 export * from './jobInput';

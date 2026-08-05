@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "wouter";
-import { KanbanSquare, Table2, Users, LayoutDashboard, LogOut, Loader2, TrendingUp } from "lucide-react";
+import { KanbanSquare, Table2, Users, LogOut, Loader2, TrendingUp, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClerk } from "@clerk/react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { queryClient } from "@/lib/query-client";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
 import { SummaryStrip } from "./summary-strip";
 import { LeadSyncBanner } from "./lead-sync-banner";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -27,6 +28,7 @@ export function AppShell({ children }: AppShellProps) {
   const { data: user, isLoading } = useGetCurrentUser();
   const updateMyProfile = useUpdateMyProfile();
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = React.useState(false);
 
   const handleProfileSave = (values: { name: string; username: string | null }) => {
     updateMyProfile.mutate(
@@ -49,6 +51,7 @@ export function AppShell({ children }: AppShellProps) {
     { href: "/board", label: "Kanban Board", icon: KanbanSquare },
     { href: "/list", label: "Job List", icon: Table2 },
     { href: "/team", label: "Team Access", icon: Users, adminOnly: true },
+    { href: "/feedback", label: "Feedback Inbox", icon: MessageSquare, adminOnly: true },
   ];
 
   const handleSignOut = () => {
@@ -94,6 +97,17 @@ export function AppShell({ children }: AppShellProps) {
           })}
         </nav>
 
+        <div className="px-4 pb-2">
+          <button
+            onClick={() => setIsFeedbackOpen(true)}
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium w-full text-left transition-colors text-sidebar-foreground/70 hover:bg-sidebar-border hover:text-sidebar-foreground"
+            title="Send feedback about the app"
+          >
+            <MessageSquare className="w-4 h-4" />
+            Feedback
+          </button>
+        </div>
+
         <div className="p-4 border-t border-sidebar-border mt-auto">
           {isLoading ? (
             <div className="flex items-center gap-3 px-3 py-2">
@@ -122,6 +136,8 @@ export function AppShell({ children }: AppShellProps) {
           )}
         </div>
       </div>
+
+      <FeedbackDialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen} />
 
       <EditProfileDialog
         open={isProfileOpen}

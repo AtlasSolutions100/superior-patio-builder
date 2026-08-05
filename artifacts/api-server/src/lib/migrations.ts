@@ -31,6 +31,17 @@ export async function runStartupMigrations(): Promise<void> {
         AND btrim(j.last_note) <> ''
         AND NOT EXISTS (SELECT 1 FROM job_notes n WHERE n.job_id = j.id);
 
+      -- Team feedback notes from the in-app Feedback button.
+      CREATE TABLE IF NOT EXISTS feedback (
+        id serial PRIMARY KEY,
+        author_user_id integer REFERENCES app_users(id) ON DELETE SET NULL,
+        author_name text NOT NULL,
+        author_role text,
+        message text NOT NULL,
+        page text,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+
       -- Ledger of spreadsheet rows already imported as leads (dedupe).
       CREATE TABLE IF NOT EXISTS lead_imports (
         id serial PRIMARY KEY,
