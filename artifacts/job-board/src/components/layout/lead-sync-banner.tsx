@@ -1,9 +1,12 @@
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   useGetCurrentUser,
   useGetLeadSyncStatus,
   getGetLeadSyncStatusQueryKey,
+  getListJobsQueryKey,
+  getGetBoardSummaryQueryKey,
   useRunLeadSync,
 } from "@workspace/api-client-react";
 
@@ -32,6 +35,19 @@ export function LeadSyncBanner() {
         // The run endpoint returns the fresh status; update the cache
         // immediately so the banner clears (or updates its error) at once.
         queryClient.setQueryData(getGetLeadSyncStatusQueryKey(), result);
+        if (!result.lastError) {
+          const count = result.lastImportedCount;
+          toast.success(
+            count > 0
+              ? `Import succeeded — ${count} new lead${count === 1 ? "" : "s"} added.`
+              : "Import succeeded — no new leads to bring in.",
+          );
+          // Refresh the jobs list/board so newly imported leads appear.
+          void queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+          void queryClient.invalidateQueries({
+            queryKey: getGetBoardSummaryQueryKey(),
+          });
+        }
       },
       onSettled: () => {
         void queryClient.invalidateQueries({
