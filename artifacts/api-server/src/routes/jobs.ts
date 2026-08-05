@@ -145,10 +145,17 @@ router.post("/jobs", requireUser, requireAdmin, async (req, res): Promise<void> 
 });
 
 router.get("/jobs/export", requireUser, async (_req, res): Promise<void> => {
+  // The export mirrors the Job List: real jobs only (Sold and later).
+  // Leads live on the Sales Pipeline and stay out of this file.
   const jobs = await db
     .select()
     .from(jobsTable)
-    .where(isNull(jobsTable.archivedAt))
+    .where(
+      and(
+        isNull(jobsTable.archivedAt),
+        inArray(jobsTable.stage, POST_SOLD_STAGES as unknown as string[]),
+      ),
+    )
     .orderBy(...installDateOrder);
 
   const stageLabels: Record<string, string> = {
@@ -651,8 +658,10 @@ router.get("/summary", requireUser, async (_req, res): Promise<void> => {
     POST_SOLD_STAGES.includes(j.stage as JobStage),
   );
 
+  // Per-stage numbers count real jobs only, matching the board itself —
+  // sales-stage leads must not leak into any /board figure.
   const byStage = JOB_STAGES.map((stage) => {
-    const inStage = allActive.filter((j) => j.stage === stage);
+    const inStage = jobs.filter((j) => j.stage === stage);
     return {
       stage,
       count: inStage.length,

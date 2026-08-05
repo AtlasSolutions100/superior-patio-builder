@@ -30,6 +30,9 @@ export function KanbanBoard({
   cardVariant = "job",
   selectedIds,
   onToggleSelect,
+  hasFilters,
+  onClearFilters,
+  emptyLabel,
 }: {
   jobs: Job[];
   groups: BoardGroup[];
@@ -39,6 +42,11 @@ export function KanbanBoard({
   /** When onToggleSelect is set, cards enter selection mode (bulk archive). */
   selectedIds?: Set<number>;
   onToggleSelect?: (id: number) => void;
+  /** Filters are active upstream — empty columns say "no matches" instead of "empty". */
+  hasFilters?: boolean;
+  onClearFilters?: () => void;
+  /** What an empty (unfiltered) column holds, e.g. "No leads yet". */
+  emptyLabel?: string;
 }) {
   const { data: user } = useGetCurrentUser();
 
@@ -146,6 +154,9 @@ export function KanbanBoard({
                 onDragEnd={() => setDraggingJob(null)}
                 selectedIds={selectedIds}
                 onToggleSelect={onToggleSelect}
+                hasFilters={hasFilters}
+                onClearFilters={onClearFilters}
+                emptyLabel={emptyLabel}
               />
             ))}
           </div>
@@ -176,6 +187,9 @@ function GroupColumn({
   onDragEnd,
   selectedIds,
   onToggleSelect,
+  hasFilters,
+  onClearFilters,
+  emptyLabel,
 }: {
   label: string;
   jobs: Job[];
@@ -188,6 +202,9 @@ function GroupColumn({
   onDragEnd: () => void;
   selectedIds?: Set<number>;
   onToggleSelect?: (id: number) => void;
+  hasFilters?: boolean;
+  onClearFilters?: () => void;
+  emptyLabel?: string;
 }) {
   const isDropTarget = !!draggingJob && dropStages.length > 0;
 
@@ -225,8 +242,23 @@ function GroupColumn({
           />
         ))}
         {jobs.length === 0 && (
-          <div className="h-24 rounded-xl border border-dashed border-border/70 flex items-center justify-center text-xs text-muted-foreground/70">
-            No jobs
+          <div className="h-24 rounded-xl border border-dashed border-border/70 flex flex-col items-center justify-center gap-1 px-2 text-center text-xs text-muted-foreground/70">
+            {hasFilters ? (
+              <>
+                <span>No matches here</span>
+                {onClearFilters && (
+                  <button
+                    type="button"
+                    onClick={onClearFilters}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </>
+            ) : (
+              <span>{emptyLabel ?? "No jobs yet"}</span>
+            )}
           </div>
         )}
       </div>

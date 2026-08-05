@@ -190,7 +190,11 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto custom-scrollbar">
         <DialogHeader>
-          <DialogTitle>{isEditing ? `Edit Job: ${job.customerName}` : "Create New Job"}</DialogTitle>
+          <DialogTitle>
+            {isEditing
+              ? `${isAdmin ? "Edit" : "View"} Job: ${job.customerName}`
+              : "Create New Job"}
+          </DialogTitle>
         </DialogHeader>
         
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">

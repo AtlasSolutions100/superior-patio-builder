@@ -32,6 +32,7 @@ import {
   ArrowDown,
   ChevronDown,
   PenSquare,
+  Eye,
   AlertTriangle,
   RefreshCw,
   X,
@@ -436,9 +437,22 @@ export default function ListPage() {
             ) : sortedJobs?.length === 0 ? (
               <tr>
                 <td colSpan={12} className="px-4 py-10 text-center text-muted-foreground">
-                  {showArchived
-                    ? "No archived jobs. Archive a finished job from its edit dialog or the list row."
-                    : "No jobs found matching these filters."}
+                  {showArchived ? (
+                    "No archived jobs. Archive a finished job from its edit dialog or the list row."
+                  ) : hasActiveFilters ? (
+                    <span>
+                      No jobs match these filters.{" "}
+                      <button
+                        type="button"
+                        onClick={resetFilters}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Reset filters
+                      </button>
+                    </span>
+                  ) : (
+                    "No jobs yet — a lead becomes a job here once it's marked Sold."
+                  )}
                 </td>
               </tr>
             ) : (
@@ -653,7 +667,11 @@ function ListRow({ job, role, archivedView }: { job: Job; role?: string; archive
                 className="text-muted-foreground hover:text-primary transition-colors p-1"
                 title={canTechEdit ? "Edit job" : "View job & notes"}
               >
-                <PenSquare className="w-3.5 h-3.5" />
+                {canTechEdit ? (
+                  <PenSquare className="w-3.5 h-3.5" />
+                ) : (
+                  <Eye className="w-3.5 h-3.5" />
+                )}
               </button>
               {canEdit && (
                 <button

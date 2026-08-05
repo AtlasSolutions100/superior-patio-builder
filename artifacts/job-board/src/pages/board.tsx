@@ -46,7 +46,17 @@ export default function BoardPage() {
     <div className="flex flex-col h-full bg-background">
       <div className="flex-none px-6 py-4 flex items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Job Board</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">Job Board</h1>
+            {user?.role === "viewer" && (
+              <span
+                className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground border border-border rounded-full px-2 py-0.5"
+                title="You can browse the board — admins and techs move jobs."
+              >
+                View only
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {boardJobs.length} active jobs
           </p>
@@ -79,7 +89,12 @@ export default function BoardPage() {
         </div>
       )}
 
-      <KanbanBoard jobs={boardJobs} groups={STAGE_GROUPS} isLoading={isLoading} />
+      <KanbanBoard
+        jobs={boardJobs}
+        groups={STAGE_GROUPS}
+        isLoading={isLoading}
+        emptyLabel="No jobs in this stage"
+      />
 
       <JobDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>

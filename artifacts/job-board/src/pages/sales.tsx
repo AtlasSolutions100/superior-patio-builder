@@ -230,7 +230,17 @@ export default function SalesPage() {
     <div className="flex flex-col h-full bg-background">
       <div className="flex-none px-6 py-4 flex items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Sales Pipeline</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">Sales Pipeline</h1>
+            {user && !isAdmin && (
+              <span
+                className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground border border-border rounded-full px-2 py-0.5"
+                title="Only admins move or edit leads — you can browse and search the pipeline."
+              >
+                View only
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {hasFilters
               ? `${shownLeadCount} of ${activeLeadCount} active ${activeLeadCount === 1 ? "lead" : "leads"} shown`
@@ -410,6 +420,9 @@ export default function SalesPage() {
         cardVariant="lead"
         selectedIds={selectMode ? selectedIds : undefined}
         onToggleSelect={selectMode ? toggleSelect : undefined}
+        hasFilters={hasFilters}
+        onClearFilters={clearFilters}
+        emptyLabel="No leads yet"
       />
 
       <AddLeadDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
