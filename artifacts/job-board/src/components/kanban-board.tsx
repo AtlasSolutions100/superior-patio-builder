@@ -123,6 +123,10 @@ export function KanbanBoard({
             className="grid h-full gap-5 px-6 pb-6 min-w-full w-max"
             style={{
               gridTemplateColumns: `repeat(${groups.length}, minmax(${COL_MIN_WIDTH}px, 1fr))`,
+              // Bound the single row to the board height — otherwise the row
+              // auto-sizes to the tallest column, the overflow gets clipped by
+              // the board's overflow-y-hidden, and column lists never scroll.
+              gridTemplateRows: "minmax(0, 1fr)",
             }}
           >
             {groups.map(group => (
@@ -185,7 +189,7 @@ function GroupColumn({
   const isDropTarget = !!draggingJob && dropStages.length > 0;
 
   return (
-    <div className="flex flex-col h-full max-h-full min-w-0">
+    <div className="flex flex-col h-full max-h-full min-w-0 min-h-0">
       <div className="flex items-baseline gap-2 mb-3 shrink-0">
         <h3 className="text-sm font-medium text-foreground">{label}</h3>
         <span className="text-xs text-muted-foreground tabular-nums">{jobs.length}</span>
