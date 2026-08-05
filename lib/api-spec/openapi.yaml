@@ -638,6 +638,42 @@ paths:
             text/csv:
               schema:
                 type: string
+  /lead-sync/status:
+    get:
+      operationId: getLeadSyncStatus
+      tags: [jobs]
+      summary: Spreadsheet lead sync status (full-access only)
+      responses:
+        "200":
+          description: Sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadSyncStatus"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /lead-sync/run:
+    post:
+      operationId: runLeadSync
+      tags: [jobs]
+      summary: Fetch new spreadsheet rows now (full-access only)
+      responses:
+        "200":
+          description: Sync completed (status reflects any error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadSyncStatus"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
   /summary:
     get:
       operationId: getBoardSummary
@@ -666,6 +702,26 @@ components:
           type: string
       required:
         - error
+    LeadSyncStatus:
+      type: object
+      description: One-way spreadsheet lead import status
+      properties:
+        lastSyncedAt:
+          type: [string, "null"]
+          description: ISO timestamp of the last successful sync
+        lastError:
+          type: [string, "null"]
+          description: Error message from the most recent failed attempt
+        lastImportedCount:
+          type: integer
+          description: Leads imported by the last successful sync
+        running:
+          type: boolean
+      required:
+        - lastSyncedAt
+        - lastError
+        - lastImportedCount
+        - running
     UserRole:
       type: string
       enum: [admin, tech, viewer]

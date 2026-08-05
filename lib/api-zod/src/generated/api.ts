@@ -474,6 +474,28 @@ export const ExportJobsCsvResponse = zod.unknown()
 
 
 /**
+ * @summary Spreadsheet lead sync status (full-access only)
+ */
+export const GetLeadSyncStatusResponse = zod.object({
+  "lastSyncedAt": zod.string().nullable().describe('ISO timestamp of the last successful sync'),
+  "lastError": zod.string().nullable().describe('Error message from the most recent failed attempt'),
+  "lastImportedCount": zod.int().describe('Leads imported by the last successful sync'),
+  "running": zod.boolean()
+}).describe('One-way spreadsheet lead import status')
+
+
+/**
+ * @summary Fetch new spreadsheet rows now (full-access only)
+ */
+export const RunLeadSyncResponse = zod.object({
+  "lastSyncedAt": zod.string().nullable().describe('ISO timestamp of the last successful sync'),
+  "lastError": zod.string().nullable().describe('Error message from the most recent failed attempt'),
+  "lastImportedCount": zod.int().describe('Leads imported by the last successful sync'),
+  "running": zod.boolean()
+}).describe('One-way spreadsheet lead import status')
+
+
+/**
  * @summary Board summary - counts and contract totals by stage, upcoming installs
  */
 export const GetBoardSummaryResponse = zod.object({

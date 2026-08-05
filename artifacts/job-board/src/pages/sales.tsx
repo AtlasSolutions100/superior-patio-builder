@@ -1,5 +1,12 @@
 import * as React from "react";
-import { useListJobs, useGetCurrentUser, Job } from "@workspace/api-client-react";
+import {
+  useListJobs,
+  useGetCurrentUser,
+  useGetLeadSyncStatus,
+  useRunLeadSync,
+  Job,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { SALES_STAGES, PIPELINE_STAGES, STAGE_LABELS } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, AlertTriangle, RefreshCw } from "lucide-react";
@@ -14,9 +21,35 @@ const SALES_GROUPS: BoardGroup[] = SALES_STAGES.map(stage => ({
   stages: [stage],
 }));
 
+function formatSyncedAt(iso: string): string {
+  const d = new Date(iso);
+  const mins = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 export default function SalesPage() {
   const { data: user } = useGetCurrentUser();
   const { data: jobs, isLoading, error, refetch, isRefetching } = useListJobs();
+  const isAdmin = user?.role === "admin";
+
+  const queryClient = useQueryClient();
+  const { data: syncStatus } = useGetLeadSyncStatus({
+    query: {
+      queryKey: ["lead-sync-status"],
+      enabled: isAdmin,
+      refetchInterval: 60_000,
+    },
+  });
+  const runSync = useRunLeadSync({
+    mutation: {
+      onSuccess: () => {
+        // New leads may have been created — refresh both.
+        void queryClient.invalidateQueries();
+      },
+    },
+  });
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
 
@@ -67,11 +100,42 @@ export default function SalesPage() {
           </p>
         </div>
 
-        {user?.role === "admin" && (
-          <Button onClick={() => setIsCreateOpen(true)} size="sm" className="h-8">
-            <Plus className="w-4 h-4 mr-1.5" />
-            New Lead
-          </Button>
+        {isAdmin && (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              {syncStatus?.lastError ? (
+                <span
+                  className="inline-flex items-center gap-1 text-destructive"
+                  title={syncStatus.lastError}
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  Sheet sync failed
+                  {syncStatus.lastSyncedAt &&
+                    ` — last synced ${formatSyncedAt(syncStatus.lastSyncedAt)}`}
+                </span>
+              ) : syncStatus?.lastSyncedAt ? (
+                <span>Sheet synced {formatSyncedAt(syncStatus.lastSyncedAt)}</span>
+              ) : null}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => runSync.mutate()}
+                disabled={runSync.isPending || syncStatus?.running}
+              >
+                {runSync.isPending || syncStatus?.running ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                Sync now
+              </Button>
+            </div>
+            <Button onClick={() => setIsCreateOpen(true)} size="sm" className="h-8">
+              <Plus className="w-4 h-4 mr-1.5" />
+              New Lead
+            </Button>
+          </div>
         )}
       </div>
 

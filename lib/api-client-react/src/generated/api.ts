@@ -31,6 +31,7 @@ import type {
   JobNoteInput,
   JobStageMove,
   JobUpdate,
+  LeadSyncStatus,
   ListJobsParams,
   ProfileUpdate,
   TeamInvite,
@@ -1617,6 +1618,154 @@ export function useExportJobsCsv<TData = Awaited<ReturnType<typeof exportJobsCsv
 
 
 
+
+export const getGetLeadSyncStatusUrl = () => {
+
+
+
+
+  return `/api/lead-sync/status`
+}
+
+/**
+ * @summary Spreadsheet lead sync status (full-access only)
+ */
+export const getLeadSyncStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<LeadSyncStatus> => {
+
+  return customFetch<LeadSyncStatus>(getGetLeadSyncStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLeadSyncStatusQueryKey = () => {
+    return [
+    `/api/lead-sync/status`
+    ] as const;
+    }
+
+
+export const getGetLeadSyncStatusQueryOptions = <TData = Awaited<ReturnType<typeof getLeadSyncStatus>>, TError = ErrorType<ErrorMessage>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeadSyncStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLeadSyncStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeadSyncStatus>>> = ({ signal }) => getLeadSyncStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLeadSyncStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLeadSyncStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getLeadSyncStatus>>>
+export type GetLeadSyncStatusQueryError = ErrorType<ErrorMessage>
+
+
+/**
+ * @summary Spreadsheet lead sync status (full-access only)
+ */
+
+export function useGetLeadSyncStatus<TData = Awaited<ReturnType<typeof getLeadSyncStatus>>, TError = ErrorType<ErrorMessage>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeadSyncStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLeadSyncStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRunLeadSyncUrl = () => {
+
+
+
+
+  return `/api/lead-sync/run`
+}
+
+/**
+ * @summary Fetch new spreadsheet rows now (full-access only)
+ */
+export const runLeadSync = async ( options?: Parameters<typeof customFetch>[1]): Promise<LeadSyncStatus> => {
+
+  return customFetch<LeadSyncStatus>(getRunLeadSyncUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRunLeadSyncMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runLeadSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runLeadSync>>, TError,void, TContext> => {
+
+const mutationKey = ['runLeadSync'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runLeadSync>>, void> = () => {
+
+
+          return  runLeadSync(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunLeadSyncMutationResult = NonNullable<Awaited<ReturnType<typeof runLeadSync>>>
+
+    export type RunLeadSyncMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Fetch new spreadsheet rows now (full-access only)
+ */
+export const useRunLeadSync = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runLeadSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runLeadSync>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunLeadSyncMutationOptions(options));
+    }
 
 export const getGetBoardSummaryUrl = () => {
 

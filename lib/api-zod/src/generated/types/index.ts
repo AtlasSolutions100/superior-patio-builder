@@ -18,6 +18,7 @@ export * from './jobNoteInput';
 export * from './jobStage';
 export * from './jobStageMove';
 export * from './jobUpdate';
+export * from './leadSyncStatus';
 export * from './listJobsParams';
 export * from './profileUpdate';
 export * from './stageSummary';

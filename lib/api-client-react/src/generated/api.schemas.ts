@@ -14,6 +14,25 @@ export interface ErrorMessage {
 }
 
 /**
+ * One-way spreadsheet lead import status
+ */
+export interface LeadSyncStatus {
+  /**
+     * ISO timestamp of the last successful sync
+     * @nullable
+     */
+  lastSyncedAt: string | null;
+  /**
+     * Error message from the most recent failed attempt
+     * @nullable
+     */
+  lastError: string | null;
+  /** Leads imported by the last successful sync */
+  lastImportedCount: number;
+  running: boolean;
+}
+
+/**
  * admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only
  */
 export type UserRole = typeof UserRole[keyof typeof UserRole];

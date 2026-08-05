@@ -30,6 +30,14 @@ export async function runStartupMigrations(): Promise<void> {
       WHERE j.last_note IS NOT NULL
         AND btrim(j.last_note) <> ''
         AND NOT EXISTS (SELECT 1 FROM job_notes n WHERE n.job_id = j.id);
+
+      -- Ledger of spreadsheet rows already imported as leads (dedupe).
+      CREATE TABLE IF NOT EXISTS lead_imports (
+        id serial PRIMARY KEY,
+        dedupe_key text NOT NULL UNIQUE,
+        job_id integer REFERENCES jobs(id) ON DELETE SET NULL,
+        imported_at timestamptz NOT NULL DEFAULT now()
+      );
     `);
     logger.info("Startup migrations applied");
   } catch (err) {
