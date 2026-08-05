@@ -6,6 +6,9 @@ import JobCard from "@/components/job-card";
 import { MoveStageDialog } from "@/components/move-stage-dialog";
 
 const COL_MIN_WIDTH = 240; // px
+// Cap column width so boards with few columns (e.g. the 4-column Sales
+// Pipeline) don't stretch to fill wide screens and inflate every card.
+const COL_MAX_WIDTH = 320; // px
 const EDGE_SCROLL_ZONE = 90; // px from container edge that triggers auto-scroll
 const EDGE_SCROLL_SPEED = 16; // px per frame at full intensity
 
@@ -122,7 +125,7 @@ export function KanbanBoard({
           <div
             className="grid h-full gap-5 px-6 pb-6 min-w-full w-max"
             style={{
-              gridTemplateColumns: `repeat(${groups.length}, minmax(${COL_MIN_WIDTH}px, 1fr))`,
+              gridTemplateColumns: `repeat(${groups.length}, minmax(${COL_MIN_WIDTH}px, ${COL_MAX_WIDTH}px))`,
               // Bound the single row to the board height — otherwise the row
               // auto-sizes to the tallest column, the overflow gets clipped by
               // the board's overflow-y-hidden, and column lists never scroll.

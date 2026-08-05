@@ -79,7 +79,9 @@ export default function JobCard({
           onDragStart?.();
         }}
         onDragEnd={() => onDragEnd?.()}
-        className={`flex flex-col rounded-xl p-4 gap-3 shadow-none ${
+        className={`flex flex-col rounded-lg shadow-none ${
+          variant === "lead" ? "p-3 gap-2" : "p-4 gap-3"
+        } ${
           isConverted ? "bg-muted/50 border-border/50" : "bg-card border-border/70"
         } ${draggable && !onToggleSelect ? "cursor-grab active:cursor-grabbing" : ""} ${
           isDragging ? "opacity-40" : ""
