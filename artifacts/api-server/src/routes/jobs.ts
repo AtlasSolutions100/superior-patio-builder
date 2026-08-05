@@ -34,6 +34,7 @@ import {
   BulkArchiveJobsResponse,
 } from "@workspace/api-zod";
 import { requireUser, requireAdmin } from "../middlewares/auth";
+import { leadDateSql } from "../lib/leadDate";
 
 const router: IRouter = Router();
 
@@ -47,22 +48,6 @@ function toApi(job: Job) {
     updatedAt: job.updatedAt.toISOString(),
   };
 }
-
-/**
- * When the lead actually came in: the spreadsheet submission date recorded in
- * the import ledger (dedupe keys start with "YYYY-MM-DD HH:MM:SS|") when the
- * job was imported, falling back to the record's created-at for manual leads.
- */
-// NOTE: the correlated column must be written fully qualified ("jobs"."id")
-// — drizzle renders `${jobsTable.id}` unqualified in a SELECT-field context,
-// which would silently bind to lead_imports' own id inside the subquery.
-const leadDateSql = sql<string | null>`COALESCE(
-  (SELECT CASE WHEN split_part(li.dedupe_key, '|', 1) ~ '^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}:\\d{2})?$'
-               AND pg_input_is_valid(split_part(li.dedupe_key, '|', 1), 'timestamptz')
-               THEN split_part(li.dedupe_key, '|', 1)::timestamptz END
-   FROM lead_imports li WHERE li.job_id = "jobs"."id" LIMIT 1),
-  ${jobsTable.createdAt}
-)`;
 
 /** estimatedInstallDate ascending, nulls last, then customer name. */
 const installDateOrder = [
@@ -411,19 +396,11 @@ router.post(
     } else {
       // Age cutoff: only New Lead — Scheduled/Bid Given/Sold stay untouched.
       // A lead's real age is its spreadsheet submission date when it was
-      // imported (ledger keys start with "YYYY-MM-DD HH:MM:SS|"); manual
-      // leads fall back to when they were created in the app.
-      const leadDate = sql`COALESCE(
-        (SELECT CASE WHEN split_part(li.dedupe_key, '|', 1) ~ '^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2}:\\d{2})?$'
-                     AND pg_input_is_valid(split_part(li.dedupe_key, '|', 1), 'timestamptz')
-                     THEN split_part(li.dedupe_key, '|', 1)::timestamptz END
-         FROM lead_imports li WHERE li.job_id = ${jobsTable.id} LIMIT 1),
-        ${jobsTable.createdAt}
-      )`;
+      // imported; manual leads fall back to when they were created in the app.
       where = and(
         isNull(jobsTable.archivedAt),
         eq(jobsTable.stage, "new_lead"),
-        sql`${leadDate} < NOW() - make_interval(days => ${olderThanDays})`,
+        sql`${leadDateSql} < NOW() - make_interval(days => ${olderThanDays})`,
       );
     }
 
