@@ -242,6 +242,10 @@ export default function ListPage() {
 
   const handleExport = async () => {
     const result = await exportCsv.refetch();
+    if (result.error || !result.data) {
+      toast.error("Couldn't export the CSV — try again.");
+      return;
+    }
     if (result.data) {
       const blob = new Blob([result.data], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);

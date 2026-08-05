@@ -128,7 +128,7 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
           toast.success("Job updated successfully");
           onOpenChange(false);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.error || "Failed to update job")
+        onError: (err: any) => toast.error(err?.data?.error || "Failed to update job")
       });
     } else {
       createJob.mutate({
@@ -145,7 +145,7 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
           toast.success("Job created successfully");
           onOpenChange(false);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.error || "Failed to create job")
+        onError: (err: any) => toast.error(err?.data?.error || "Failed to create job")
       });
     }
   };

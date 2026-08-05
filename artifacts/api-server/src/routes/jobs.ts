@@ -619,8 +619,9 @@ router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => 
 
   if (requiresInstallDate(targetStage) && !effectiveDate) {
     res.status(400).json({
-      error:
-        "An Estimated Installation Date is required when moving a job to Sold",
+      error: `An Estimated Installation Date is required when moving a job to ${
+        targetStage === "sold" ? "Sold" : "Sold or a later stage"
+      }`,
     });
     return;
   }

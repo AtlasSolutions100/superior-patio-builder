@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { STAGE_LABELS } from "@/lib/utils";
+import { STAGE_LABELS, OPERATIONAL_STAGES } from "@/lib/utils";
 import { toast } from "sonner";
 import { queryClient } from "@/lib/query-client";
 import { Job, JobStage, JobStageMove, useMoveJobStage, getListJobsQueryKey, getGetBoardSummaryQueryKey } from "@workspace/api-client-react";
@@ -12,7 +12,12 @@ export function MoveStageDialog({ job, targetStage, open, onOpenChange }: { job:
   const moveStage = useMoveJobStage();
   const [date, setDate] = React.useState(job.estimatedInstallDate || "");
 
-  const requiresDate = targetStage === "sold" && !job.estimatedInstallDate;
+  // Every stage from Sold onward requires an install date (same rule as the
+  // server) — not just Sold itself, so the dialog collects the date up front
+  // instead of surfacing a server error after the fact.
+  const requiresDate =
+    (OPERATIONAL_STAGES as readonly string[]).includes(targetStage) &&
+    !job.estimatedInstallDate;
 
   // If the dialog opens and we don't actually require a date, 
   // we could just execute immediately, but having a confirmation step is nice 
@@ -20,7 +25,7 @@ export function MoveStageDialog({ job, targetStage, open, onOpenChange }: { job:
 
   const handleConfirm = () => {
     if (requiresDate && !date) {
-      toast.error("Estimated install date is required for Sold jobs");
+      toast.error("Estimated install date is required for this stage");
       return;
     }
 
@@ -38,7 +43,7 @@ export function MoveStageDialog({ job, targetStage, open, onOpenChange }: { job:
         onOpenChange(false);
       },
       onError: (err: any) => {
-        toast.error(err?.response?.data?.error || "Failed to move stage");
+        toast.error(err?.data?.error || "Failed to move stage");
       }
     });
   };
@@ -56,7 +61,8 @@ export function MoveStageDialog({ job, targetStage, open, onOpenChange }: { job:
         {requiresDate && (
           <div className="space-y-4 my-4 bg-accent/30 p-4 rounded-md border border-primary/20">
             <p className="text-sm font-medium text-primary">
-              Moving a job to "Sold" requires an estimated install date.
+              Moving a job to "{STAGE_LABELS[targetStage] ?? targetStage}" requires an
+              estimated install date.
             </p>
             <div className="space-y-2">
               <Label htmlFor="installDateConfirm">Estimated Install Date <span className="text-destructive">*</span></Label>

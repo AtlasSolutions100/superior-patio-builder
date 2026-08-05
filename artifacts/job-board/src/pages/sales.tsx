@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, Plus, AlertTriangle, RefreshCw, Archive, X, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { JobDialog } from "@/components/job-dialog";
 import { KanbanBoard, BoardGroup } from "@/components/kanban-board";
@@ -58,6 +59,9 @@ export default function SalesPage() {
         // New leads may have been created — refresh both.
         void queryClient.invalidateQueries();
       },
+      onError: (err: any) => {
+        toast.error(err?.data?.error || "Couldn't start the sheet sync — try again.");
+      },
     },
   });
 
@@ -77,20 +81,27 @@ export default function SalesPage() {
   // The request id guards against out-of-order responses when toggling
   // 30/60/90 quickly — only the latest request may set the count.
   const previewReqId = React.useRef(0);
+  const [previewFailed, setPreviewFailed] = React.useState(false);
+  const [previewAttempt, setPreviewAttempt] = React.useState(0);
   React.useEffect(() => {
     if (!isCleanupOpen) return;
     const reqId = ++previewReqId.current;
     setPreviewCount(null);
+    setPreviewFailed(false);
     preview.mutate(
       { data: { olderThanDays, dryRun: true } },
       {
         onSuccess: r => {
           if (previewReqId.current === reqId) setPreviewCount(r.count);
         },
+        onError: () => {
+          // Without this, the dialog would show "Counting…" forever.
+          if (previewReqId.current === reqId) setPreviewFailed(true);
+        },
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCleanupOpen, olderThanDays]);
+  }, [isCleanupOpen, olderThanDays, previewAttempt]);
 
   const finishBulk = () => {
     setIsCleanupOpen(false);
@@ -99,17 +110,20 @@ export default function SalesPage() {
     void queryClient.invalidateQueries();
   };
 
+  const bulkArchiveError = (err: any) =>
+    toast.error(err?.data?.error || "Couldn't archive those leads — try again.");
+
   const archiveByAge = () => {
     bulkArchive.mutate(
       { data: { olderThanDays } },
-      { onSuccess: finishBulk },
+      { onSuccess: finishBulk, onError: bulkArchiveError },
     );
   };
 
   const archiveSelected = () => {
     bulkArchive.mutate(
       { data: { jobIds: Array.from(selectedIds) } },
-      { onSuccess: finishBulk },
+      { onSuccess: finishBulk, onError: bulkArchiveError },
     );
   };
 
@@ -426,7 +440,18 @@ export default function SalesPage() {
               ))}
             </div>
             <p className="text-sm text-muted-foreground">
-              {preview.isPending || previewCount === null ? (
+              {previewFailed ? (
+                <span className="inline-flex items-center gap-1.5 text-destructive">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Couldn't count matching leads.
+                  <button
+                    className="font-semibold hover:underline"
+                    onClick={() => setPreviewAttempt(a => a + 1)}
+                  >
+                    Retry
+                  </button>
+                </span>
+              ) : preview.isPending || previewCount === null ? (
                 <span className="inline-flex items-center gap-1.5">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" /> Counting…
                 </span>
