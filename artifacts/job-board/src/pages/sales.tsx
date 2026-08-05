@@ -21,7 +21,7 @@ import {
 import { Loader2, Plus, AlertTriangle, RefreshCw, Archive, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { JobDialog } from "@/components/job-dialog";
+import { AddLeadDialog } from "@/components/add-lead-dialog";
 import { KanbanBoard, BoardGroup } from "@/components/kanban-board";
 
 // Four single-stage columns: New Lead → Scheduled → Bid Given → Sold.
@@ -313,7 +313,7 @@ export default function SalesPage() {
             </div>
             <Button onClick={() => setIsCreateOpen(true)} size="sm" className="h-8">
               <Plus className="w-4 h-4 mr-1.5" />
-              New Lead
+              Add Lead
             </Button>
           </div>
         )}
@@ -412,7 +412,7 @@ export default function SalesPage() {
         onToggleSelect={selectMode ? toggleSelect : undefined}
       />
 
-      <JobDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+      <AddLeadDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 
       <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
         <DialogContent className="sm:max-w-md">
