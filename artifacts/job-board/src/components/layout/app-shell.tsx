@@ -13,6 +13,7 @@ import {
 import { queryClient } from "@/lib/query-client";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
 import { SummaryStrip } from "./summary-strip";
+import { LeadSyncBanner } from "./lead-sync-banner";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -135,6 +136,7 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden">
+        <LeadSyncBanner />
         <SummaryStrip />
         <main className="flex-1 overflow-auto custom-scrollbar relative">
           {children}
