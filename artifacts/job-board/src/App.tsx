@@ -102,37 +102,58 @@ function DemoLoginButtons() {
 
   if (!isDevClerkInstance) return null;
 
+  // One full sign-in attempt. Sign-in tokens are single-use, so each attempt
+  // mints a fresh token before the ticket exchange.
+  // Returns "done" on success, "needs-steps" if Clerk wants extra verification
+  // (not retryable), or throws on transient failures (retryable).
+  const attemptLogin = async (email: string): Promise<"done" | "needs-steps"> => {
+    // Ask the API for a short-lived sign-in token (ticket). Ticket sign-ins
+    // bypass Clerk's Client Trust device check, keeping this one-click.
+    const resp = await fetch(`${import.meta.env.BASE_URL}api/demo-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!resp.ok) {
+      throw new Error(`demo-login responded ${resp.status}`);
+    }
+    const { token } = (await resp.json()) as { token: string };
+    const { error: signInError } = await signIn.ticket({ ticket: token });
+    if (signInError) {
+      throw new Error("ticket exchange failed");
+    }
+    if (signIn.status !== "complete") {
+      return "needs-steps";
+    }
+    await signIn.finalize({
+      navigate: () => setLocation("/board"),
+    });
+    return "done";
+  };
+
   const loginAs = async (email: string) => {
     if (busyEmail) return;
     setBusyEmail(email);
     setError(null);
+    // Clerk's dev instance occasionally rate-limits or hiccups on the ticket
+    // exchange; retry a couple of times with a small backoff before giving up.
+    const MAX_ATTEMPTS = 3;
+    const BACKOFF_MS = [500, 1000];
     try {
-      // Ask the API for a short-lived sign-in token (ticket). Ticket sign-ins
-      // bypass Clerk's Client Trust device check, keeping this one-click.
-      const resp = await fetch(`${import.meta.env.BASE_URL}api/demo-login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!resp.ok) {
-        setError("Demo sign-in failed. Try the form above.");
-        return;
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        try {
+          const result = await attemptLogin(email);
+          if (result === "needs-steps") {
+            setError("Demo sign-in needs extra steps — try the form above.");
+          }
+          return;
+        } catch {
+          if (attempt < MAX_ATTEMPTS - 1) {
+            await new Promise((r) => setTimeout(r, BACKOFF_MS[attempt]));
+          }
+        }
       }
-      const { token } = (await resp.json()) as { token: string };
-      const { error: signInError } = await signIn.ticket({ ticket: token });
-      if (signInError) {
-        setError("Demo sign-in failed. Try the form above.");
-        return;
-      }
-      if (signIn.status === "complete") {
-        await signIn.finalize({
-          navigate: () => setLocation("/board"),
-        });
-      } else {
-        setError("Demo sign-in needs extra steps — try the form above.");
-      }
-    } catch {
-      setError("Demo sign-in failed. Try the form above.");
+      setError("Demo sign-in hit a temporary glitch — click the button again.");
     } finally {
       setBusyEmail(null);
     }
