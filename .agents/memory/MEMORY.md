@@ -7,3 +7,4 @@
 - [Composite TS builds](composite-ts-builds.md) — after changing lib/* exports, run `npx tsc -b lib/<pkg>` or dependents' typecheck sees stale .d.ts (phantom "no exported member").
 - [Drizzle correlated subqueries](drizzle-correlated-subquery.md) — `${table.col}` in a SELECT-field sql fragment renders unqualified and binds to the subquery table; hardcode `"parent"."col"`.
 - [QA drag & stale HMR](qa-drag-and-hmr.md) — drag "drop zones missing" test failures: hard-reload page (stale HMR modules) and use real DataTransfer; only demo login buttons give non-viewer roles.
+- [Artifact workflow ownership](artifact-workflow-ownership.md) — once imported artifact services are registered, remove any temporary duplicate workflows before starting the managed services.

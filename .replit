@@ -20,14 +20,6 @@ author = "agent"
 task = "workflow.run"
 args = "api-tests"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "API Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Web App"
-
 [[workflows.workflow]]
 name = "api-tests"
 author = "agent"
@@ -38,30 +30,6 @@ args = "pnpm --filter @workspace/api-server run test"
 
 [workflows.workflow.metadata]
 isValidation = true
-
-[[workflows.workflow]]
-name = "API Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=8080 NODE_ENV=development pnpm --filter @workspace/api-server run dev"
-waitForPort = 8080
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "Web App"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "env -u REPL_ID PORT=18735 BASE_PATH=/ API_PROXY_TARGET=http://127.0.0.1:8080 pnpm --filter @workspace/job-board run dev"
-waitForPort = 18735
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [agent]
 stack = "PNPM_WORKSPACE"
