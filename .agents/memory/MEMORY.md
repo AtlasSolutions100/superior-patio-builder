@@ -8,3 +8,4 @@
 - [Drizzle correlated subqueries](drizzle-correlated-subquery.md) — `${table.col}` in a SELECT-field sql fragment renders unqualified and binds to the subquery table; hardcode `"parent"."col"`.
 - [QA drag & stale HMR](qa-drag-and-hmr.md) — drag "drop zones missing" test failures: hard-reload page (stale HMR modules) and use real DataTransfer; only demo login buttons give non-viewer roles.
 - [Artifact workflow ownership](artifact-workflow-ownership.md) — once imported artifact services are registered, remove any temporary duplicate workflows before starting the managed services.
+- [GitHub API sync](github-api-sync.md) — GitHub OAuth may support REST calls without authenticating local Git; verify exact objects before an API-mediated sync.
