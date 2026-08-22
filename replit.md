@@ -24,6 +24,18 @@ on a phone (the install crew works from one).
   `app_users`; the first user ever becomes `admin`, and after that **sign-up
   is invite-only** — an email with no pending invite gets a 403 and no row.
 
+## Run on Replit
+
+- **Web App** runs the Vite frontend on port `18735` and proxies `/api` to the
+  API server.
+- **API Server** runs the Express API on port `8080`; its startup routine
+  applies additive migrations and seeds the default pipeline stages for a
+  fresh database.
+- Required Replit secrets: `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, and
+  `VITE_CLERK_PUBLISHABLE_KEY`. Replit supplies `DATABASE_URL` automatically.
+- Development Clerk (`pk_test_`) credentials enable the sign-in page's demo
+  accounts. Do not use them for a published production app.
+
 ## Domain rules (read this before changing anything)
 
 - **Stages are data, not code.** The `stages` table holds both pipelines;
