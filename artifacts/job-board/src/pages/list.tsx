@@ -289,8 +289,8 @@ export default function ListPage() {
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               {showArchived
-                ? `${sortedJobs?.length ?? 0} archived jobs. They stay out of the board and main list until restored.`
-                : `${sortedJobs?.length ?? 0} jobs shown. Click a column to sort; edit toggles and stage inline.`}
+                ? `${sortedJobs?.length ?? 0} archived ${(sortedJobs?.length ?? 0) === 1 ? "job" : "jobs"}. They stay out of the board and main list until restored.`
+                : `${sortedJobs?.length ?? 0} ${(sortedJobs?.length ?? 0) === 1 ? "job" : "jobs"} shown. Click a column to sort; edit toggles and stage inline.`}
             </p>
           </div>
 
