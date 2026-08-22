@@ -37,6 +37,7 @@
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
 
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'Space Mono', monospace;
@@ -47,79 +48,96 @@
   --radius-xl: 12px;
 }
 
+/*
+ * Brand palette — Superior Patio Covers steel blue (#2D4E6B) on cool
+ * neutrals; dark mode lifts the blue to #8FB0D1 so it carries on dark ground.
+ *
+ * To revert the accent to the previous orange (keeping everything else):
+ *   light  --primary / --ring : 24 85% 55%
+ *   dark   --primary / --ring : 24 85% 55%   --primary-foreground: 0 0% 100%
+ */
 :root {
-  --background: 40 20% 98%;
-  --foreground: 20 15% 15%;
-  --border: 40 10% 90%;
-  --input: 40 10% 90%;
-  --ring: 24 85% 55%;
-  
+  --background: 210 30% 98%;
+  --foreground: 211 29% 15%;
+  --border: 210 22% 91%;
+  --input: 210 22% 91%;
+  --ring: 210 41% 30%;
+
   --card: 0 0% 100%;
-  --card-foreground: 20 15% 15%;
-  --card-border: 40 10% 90%;
+  --card-foreground: 211 29% 15%;
+  --card-border: 210 22% 91%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 20 15% 15%;
-  --popover-border: 40 10% 90%;
-  
-  --primary: 24 85% 55%;
+  --popover-foreground: 211 29% 15%;
+  --popover-border: 210 22% 91%;
+
+  --primary: 210 41% 30%;
   --primary-foreground: 0 0% 100%;
-  
-  --secondary: 40 15% 90%;
-  --secondary-foreground: 20 15% 15%;
-  
-  --muted: 40 10% 95%;
-  --muted-foreground: 20 5% 45%;
-  
-  --accent: 40 15% 90%;
-  --accent-foreground: 20 15% 15%;
-  
-  --destructive: 0 84% 60%;
+
+  --secondary: 210 20% 92%;
+  --secondary-foreground: 211 29% 15%;
+
+  --muted: 210 20% 95%;
+  --muted-foreground: 210 14% 42%;
+
+  --accent: 210 25% 92%;
+  --accent-foreground: 211 29% 15%;
+
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --sidebar: 20 15% 13%;
-  --sidebar-foreground: 40 20% 98%;
-  --sidebar-border: 20 10% 20%;
-  
+  --sidebar: 210 41% 20%;
+  --sidebar-foreground: 210 30% 90%;
+  --sidebar-border: 210 30% 28%;
+  /* The sidebar is dark in both themes, so its accent stays light. */
+  --sidebar-primary: 210 45% 72%;
+
   --radius: 6px;
 }
 
 .dark {
-  --background: 20 15% 13%;
-  --foreground: 40 20% 98%;
-  --border: 20 10% 20%;
-  --input: 20 10% 20%;
-  --ring: 24 85% 55%;
-  
-  --card: 20 15% 15%;
-  --card-foreground: 40 20% 98%;
-  --card-border: 20 10% 25%;
+  --background: 211 29% 9%;
+  --foreground: 210 25% 93%;
+  --border: 210 23% 19%;
+  --input: 210 23% 19%;
+  --ring: 210 41% 69%;
 
-  --popover: 20 15% 15%;
-  --popover-foreground: 40 20% 98%;
-  --popover-border: 20 10% 25%;
-  
-  --primary: 24 85% 55%;
-  --primary-foreground: 0 0% 100%;
-  
-  --secondary: 20 10% 25%;
-  --secondary-foreground: 40 20% 98%;
-  
-  --muted: 20 10% 20%;
-  --muted-foreground: 40 10% 70%;
-  
-  --accent: 20 10% 25%;
-  --accent-foreground: 40 20% 98%;
-  
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 100%;
+  --card: 211 27% 12%;
+  --card-foreground: 210 25% 93%;
+  --card-border: 210 23% 22%;
 
-  --sidebar: 20 15% 10%;
-  --sidebar-foreground: 40 20% 98%;
-  --sidebar-border: 20 10% 18%;
+  --popover: 211 27% 12%;
+  --popover-foreground: 210 25% 93%;
+  --popover-border: 210 23% 22%;
+
+  --primary: 210 41% 69%;
+  --primary-foreground: 211 45% 12%;
+
+  --secondary: 210 22% 18%;
+  --secondary-foreground: 210 25% 93%;
+
+  --muted: 210 22% 17%;
+  --muted-foreground: 210 17% 64%;
+
+  --accent: 210 25% 19%;
+  --accent-foreground: 210 25% 93%;
+
+  --destructive: 0 70% 62%;
+  --destructive-foreground: 211 45% 10%;
+
+  --sidebar: 210 30% 7%;
+  --sidebar-foreground: 210 20% 84%;
+  --sidebar-border: 210 25% 15%;
+  --sidebar-primary: 210 45% 72%;
 }
 
 @layer base {
+  /* While the theme flips, no element animates its colors. */
+  .theme-switching *,
+  .theme-switching *::before,
+  .theme-switching *::after {
+    transition: none !important;
+  }
   :root { color-scheme: light; }
   .dark { color-scheme: dark; }
   * {

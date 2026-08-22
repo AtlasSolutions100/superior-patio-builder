@@ -127,7 +127,7 @@ export default function JobCard({
               {stg.labelOf(job.stage)}
             </div>
           ) : (
-            <div className="text-[11px] text-muted-foreground/80 mb-1 truncate">
+            <div className="text-[11px] text-muted-foreground mb-1 truncate">
               {stg.labelOf(job.stage)}
             </div>
           )}

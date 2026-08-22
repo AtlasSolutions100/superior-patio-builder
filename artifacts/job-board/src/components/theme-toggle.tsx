@@ -1,7 +1,6 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useTheme, type Theme } from "@/lib/theme";
+import { useTheme, THEME_ORDER, type Theme } from "@/lib/theme";
 
-const ORDER: Theme[] = ["system", "light", "dark"];
 const LABEL: Record<Theme, string> = {
   system: "Theme: follows your device",
   light: "Theme: light",
@@ -13,14 +12,14 @@ const LABEL: Record<Theme, string> = {
  * sign-out control in the sidebar and the mobile drawer.
  */
 export function ThemeToggle({ className = "" }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
+  const { theme, cycleTheme } = useTheme();
   const Icon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
-  const next = ORDER[(ORDER.indexOf(theme) + 1) % ORDER.length];
+  const next = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
 
   return (
     <button
       type="button"
-      onClick={() => setTheme(next)}
+      onClick={cycleTheme}
       className={`text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-1 rounded-md ${className}`}
       title={`${LABEL[theme]} — click for ${next === "system" ? "device" : next}`}
       aria-label={LABEL[theme]}

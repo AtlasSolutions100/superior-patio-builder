@@ -250,7 +250,7 @@ function GroupColumn({
           />
         ))}
         {jobs.length === 0 && (
-          <div className="h-24 rounded-xl border border-dashed border-border/70 flex flex-col items-center justify-center gap-1 px-2 text-center text-xs text-muted-foreground/70">
+          <div className="h-24 rounded-xl border border-dashed border-border/70 flex flex-col items-center justify-center gap-1 px-2 text-center text-xs text-muted-foreground">
             {hasFilters ? (
               <>
                 <span>No matches here</span>

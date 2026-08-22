@@ -346,9 +346,10 @@ export default function TeamPage() {
             </table>
           </div>
 
-          <p className="text-xs text-muted-foreground/70 mt-4 leading-relaxed">
-            Admin — full access. Tech — views jobs, moves them to Installed, adds notes.
-            Viewer — read only.
+          <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
+            Admin — full access, including the Sales Pipeline and Settings. Tech —
+            sees the Job Board and Job List, moves jobs between stages, and adds
+            notes. Viewer — read only.
           </p>
         </div>
       </div>

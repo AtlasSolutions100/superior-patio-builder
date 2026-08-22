@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
-  <rect width="200" height="60" fill="transparent"/>
-  <path d="M10 20 L30 10 L50 20 L50 40 L30 50 L10 40 Z" fill="#E86C20" opacity="0.9"/>
-  <path d="M10 20 L30 10 L30 30 Z" fill="#FFFFFF" opacity="0.3"/>
-  <text x="65" y="38" font-family="sans-serif" font-weight="800" font-size="20" fill="#E86C20">SUPERIOR</text>
-  <text x="170" y="38" font-family="sans-serif" font-weight="500" font-size="14" fill="#302621">PATIO</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g stroke="#2D4E6B" stroke-width="2.75" stroke-linejoin="round" opacity="0.9">
+    <rect x="21" y="4" width="22" height="22" transform="rotate(45 32 15)"/>
+    <rect x="4" y="21" width="22" height="22" transform="rotate(45 15 32)"/>
+    <rect x="21" y="38" width="22" height="22" transform="rotate(45 32 49)"/>
+  </g>
+  <text x="33" y="44.5" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-weight="600" font-size="36" fill="#2D4E6B">S</text>
 </svg>

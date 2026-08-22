@@ -27,6 +27,7 @@ import { SummaryStrip } from "./summary-strip";
 import { LeadSyncBanner } from "./lead-sync-banner";
 import { FeedbackDialog } from "@/components/feedback-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BrandMark } from "@/components/brand-mark";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -62,7 +63,7 @@ function NavLinks({
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer",
                 isActive
-                  ? "bg-primary/10 text-primary"
+                  ? "bg-sidebar-primary/15 text-sidebar-primary"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-border hover:text-sidebar-foreground"
               )}
             >
@@ -79,9 +80,7 @@ function NavLinks({
 function Brand() {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0">
-        SP
-      </div>
+      <BrandMark className="w-8 h-8 shrink-0 text-sidebar-foreground" />
       <div className="flex flex-col">
         <span className="font-bold text-sm leading-none">Superior Patio</span>
         <span className="text-xs text-sidebar-foreground/60 mt-1 font-mono">Job Board</span>
@@ -132,9 +131,7 @@ export function AppShell({ children }: AppShellProps) {
     return (
       <div className="flex h-[100dvh] w-full items-center justify-center bg-background p-6 text-foreground">
         <div className="max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-            SP
-          </div>
+          <BrandMark className="mx-auto mb-4 h-12 w-12 text-primary" />
           <h1 className="text-lg font-semibold">No access yet</h1>
           <p className="mt-2 text-sm text-muted-foreground">{accessDenied}</p>
           <button

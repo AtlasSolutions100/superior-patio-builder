@@ -9,6 +9,7 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "./lib/query-client";
 import { Toaster } from "sonner";
 import { AppShell } from "./components/layout/app-shell";
+import { useTheme } from "@/lib/theme";
 
 import LandingPage from "./pages/landing";
 import BoardPage from "./pages/board";
@@ -37,29 +38,30 @@ if (!clerkPubKey) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
 }
 
-const clerkAppearance = {
+const makeClerkAppearance = (resolved: "light" | "dark") => ({
   theme: shadcn,
   cssLayerName: "clerk",
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/${resolved === "dark" ? "logo-dark.svg" : "logo.svg"}`,
   },
   variables: {
-    colorPrimary: "hsl(24, 85%, 55%)",
-    colorForeground: "hsl(20, 15%, 15%)",
-    colorMutedForeground: "hsl(20, 5%, 45%)",
-    colorDanger: "hsl(0, 84%, 60%)",
-    colorBackground: "hsl(0, 0%, 100%)",
-    colorInput: "hsl(40, 10%, 90%)",
-    colorInputForeground: "hsl(20, 15%, 15%)",
-    colorNeutral: "hsl(40, 10%, 90%)",
+    // Bound to the app's theme tokens so the Clerk card follows light/dark.
+    colorPrimary: "hsl(var(--primary))",
+    colorForeground: "hsl(var(--card-foreground))",
+    colorMutedForeground: "hsl(var(--muted-foreground))",
+    colorDanger: "hsl(var(--destructive))",
+    colorBackground: "hsl(var(--card))",
+    colorInput: "hsl(var(--input))",
+    colorInputForeground: "hsl(var(--foreground))",
+    colorNeutral: "hsl(var(--border))",
     fontFamily: "'Plus Jakarta Sans', sans-serif",
     borderRadius: "6px",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-white rounded-2xl w-[440px] max-w-full overflow-hidden border shadow-sm",
+    cardBox: "bg-card rounded-2xl w-[440px] max-w-full overflow-hidden border shadow-sm",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
     headerTitle: "text-2xl font-bold text-foreground",
@@ -84,7 +86,7 @@ const clerkAppearance = {
     formFieldRow: "mb-4",
     main: "w-full",
   },
-};
+});
 
 // Demo login is development-only: dev and prod Clerk user stores are
 // separate, and these buttons only render with development (pk_test) keys.
@@ -288,6 +290,10 @@ function ClerkQueryClientCacheInvalidator() {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
+  // Rebuild the Clerk appearance when the theme flips so its card, inputs,
+  // and logo follow light/dark with the rest of the app.
+  const { resolved } = useTheme();
+  const clerkAppearance = React.useMemo(() => makeClerkAppearance(resolved), [resolved]);
 
   return (
     <ClerkProvider
