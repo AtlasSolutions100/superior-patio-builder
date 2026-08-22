@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Job, JobStage, JobInput, JobUpdate, useCreateJob, useUpdateJob, useDeleteJob, useArchiveJob, getListJobsQueryKey, getGetBoardSummaryQueryKey, useGetCurrentUser } from "@workspace/api-client-react";
+import { Job, JobStage, JobInput, JobUpdate, useCreateJob, useUpdateJob, useDeleteJob, useArchiveJob, useListUsers, useSetJobAssignees, getListJobsQueryKey, getListUsersQueryKey, getGetBoardSummaryQueryKey, useGetCurrentUser } from "@workspace/api-client-react";
 import { queryClient } from "@/lib/query-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useStages } from "@/hooks/use-stages";
 import { formatPhoneInput, isLikelyValidPhone } from "@/lib/phone";
+import { initials } from "@/lib/utils";
 import { toast } from "sonner";
 import { JobNotes } from "./job-notes";
 
@@ -309,6 +310,13 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
             )}
           </div>
 
+          {isEditing && (
+            <div className="space-y-2">
+              <Label>Assigned Crew</Label>
+              <AssignedCrew job={job} isAdmin={isAdmin} />
+            </div>
+          )}
+
           {isEditing ? (
             <div className="space-y-2">
               <Label>Notes</Label>
@@ -353,5 +361,115 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Who's on this job. Admins toggle team members on/off (saved immediately);
+ * techs and viewers see the list read-only. Viewer-role accounts aren't
+ * assignable — they don't work jobs.
+ */
+function AssignedCrew({ job, isAdmin }: { job: Job; isAdmin: boolean }) {
+  const { data: users } = useListUsers({
+    query: { enabled: isAdmin, queryKey: getListUsersQueryKey() },
+  });
+  const setAssignees = useSetJobAssignees();
+  const assigned = job.assignees ?? [];
+
+  // Local optimistic set: toggling two people quickly must not lose the
+  // first click while the jobs list is still refetching (each PUT replaces
+  // the full set, so it has to be computed from the latest local state, not
+  // the possibly-stale job prop).
+  const [ids, setIds] = React.useState<number[]>(assigned.map(a => a.id));
+  const jobIdRef = React.useRef(job.id);
+  React.useEffect(() => {
+    if (jobIdRef.current !== job.id) {
+      jobIdRef.current = job.id;
+      setIds((job.assignees ?? []).map(a => a.id));
+    }
+  }, [job.id, job.assignees]);
+  const assignedIds = new Set(ids);
+
+  const toggle = (userId: number) => {
+    setIds(prev => {
+      const next = prev.includes(userId)
+        ? prev.filter(i => i !== userId)
+        : [...prev, userId];
+      setAssignees.mutate(
+        { id: job.id, data: { userIds: next } },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+          },
+          onError: (err: any) => {
+            toast.error(err?.data?.error || "Couldn't update the crew — try again.");
+            // Roll back the optimistic toggle that failed.
+            setIds(cur =>
+              prev.includes(userId) ? [...cur, userId] : cur.filter(i => i !== userId),
+            );
+          },
+        },
+      );
+      return next;
+    });
+  };
+
+  if (!isAdmin) {
+    return assigned.length > 0 ? (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {assigned.map(a => (
+          <span
+            key={a.id}
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+          >
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold">
+              {initials(a.name)}
+            </span>
+            {a.name}
+          </span>
+        ))}
+      </div>
+    ) : (
+      <p className="text-xs text-muted-foreground">No one assigned yet.</p>
+    );
+  }
+
+  const assignable = (users ?? []).filter(u => u.role !== "viewer");
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {assignable.map(u => {
+        const on = assignedIds.has(u.id);
+        const name = u.name || u.username || u.email || "Unknown";
+        return (
+          <button
+            key={u.id}
+            type="button"
+            onClick={() => toggle(u.id)}
+            title={on ? `Unassign ${name}` : `Assign ${name}`}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60 ${
+              on
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            }`}
+          >
+            <span
+              className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
+                on ? "bg-primary/20" : "bg-muted"
+              }`}
+            >
+              {initials(name)}
+            </span>
+            {name}
+            <span className="text-[10px] uppercase opacity-60">{u.role}</span>
+          </button>
+        );
+      })}
+      {assignable.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          No assignable team members yet — invite techs on the Team page.
+        </p>
+      )}
+    </div>
   );
 }

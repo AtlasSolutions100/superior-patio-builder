@@ -13,6 +13,23 @@ export default function BoardPage() {
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
 
+  // "My jobs" — techs default to seeing only the jobs assigned to them.
+  const [myJobsOnly, setMyJobsOnly] = React.useState(false);
+  const [myJobsInitFor, setMyJobsInitFor] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (!user || myJobsInitFor === user.id) return;
+    const saved = localStorage.getItem(`spc-myjobs:${user.id}`);
+    setMyJobsOnly(saved != null ? saved === "1" : user.role === "tech");
+    setMyJobsInitFor(user.id);
+  }, [user, myJobsInitFor]);
+  const toggleMyJobs = () => {
+    setMyJobsOnly(v => {
+      const nv = !v;
+      if (user) localStorage.setItem(`spc-myjobs:${user.id}`, nv ? "1" : "0");
+      return nv;
+    });
+  };
+
   // One column per job-pipeline stage, in the order set on the Settings page.
   const groups = React.useMemo<BoardGroup[]>(
     () =>
@@ -26,8 +43,13 @@ export default function BoardPage() {
 
   // The main board is operational only — leads live on the Sales Pipeline page.
   const boardJobs = React.useMemo<Job[]>(
-    () => (jobs || []).filter(job => stg.isJobStage(job.stage)),
-    [jobs, stg]
+    () =>
+      (jobs || []).filter(
+        job =>
+          stg.isJobStage(job.stage) &&
+          (!myJobsOnly || job.assignees?.some(a => a.id === user?.id))
+      ),
+    [jobs, stg, myJobsOnly, user?.id]
   );
 
   if (error && !jobs) {
@@ -66,9 +88,24 @@ export default function BoardPage() {
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {boardJobs.length} active jobs
+            {boardJobs.length} {myJobsOnly ? "of your" : "active"} jobs
           </p>
         </div>
+
+        {user && user.role !== "viewer" && (
+          <button
+            type="button"
+            onClick={toggleMyJobs}
+            className={`text-xs px-3 h-8 rounded-full border transition-colors inline-flex items-center gap-1.5 shrink-0 ${
+              myJobsOnly
+                ? "border-primary text-primary bg-primary/10"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+            title="Show only jobs assigned to you"
+          >
+            My jobs
+          </button>
+        )}
 
         {user?.role === "admin" && (
           <Button onClick={() => setIsCreateOpen(true)} size="sm" className="h-8">

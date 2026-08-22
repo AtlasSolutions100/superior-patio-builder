@@ -64,6 +64,16 @@ export async function runStartupMigrations(): Promise<void> {
         updated_at timestamptz NOT NULL DEFAULT now()
       );
       CREATE INDEX IF NOT EXISTS stages_pipeline_position_idx ON stages(pipeline, position);
+
+      -- Crew assignment (many-to-many): powers the "My jobs" view.
+      CREATE TABLE IF NOT EXISTS job_assignments (
+        id serial PRIMARY KEY,
+        job_id integer NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+        user_id integer NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT job_assignments_job_user_uq UNIQUE (job_id, user_id)
+      );
+      CREATE INDEX IF NOT EXISTS job_assignments_user_id_idx ON job_assignments(user_id);
     `);
 
     await seedStages();

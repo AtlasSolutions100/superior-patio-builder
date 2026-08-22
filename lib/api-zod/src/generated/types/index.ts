@@ -16,6 +16,8 @@ export * from './feedback';
 export * from './feedbackInput';
 export * from './healthStatus';
 export * from './job';
+export * from './jobAssignee';
+export * from './jobAssigneesUpdate';
 export * from './jobInput';
 export * from './jobNote';
 export * from './jobNoteInput';

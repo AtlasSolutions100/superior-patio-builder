@@ -4,11 +4,16 @@ import {
   db,
   jobsTable,
   jobNotesTable,
+  jobAssignmentsTable,
+  appUsersTable,
   type Job,
   type JobNote,
   type JobStage,
 } from "@workspace/db";
 import {
+  SetJobAssigneesParams,
+  SetJobAssigneesBody,
+  SetJobAssigneesResponse,
   ListJobsQueryParams,
   ListJobsResponse,
   CreateJobBody,
@@ -53,6 +58,35 @@ function toApi(job: Job) {
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   };
+}
+
+export interface Assignee {
+  id: number;
+  name: string;
+}
+
+/** Assigned team members for a set of jobs, grouped by job id. */
+async function assigneesByJob(jobIds: number[]): Promise<Map<number, Assignee[]>> {
+  const map = new Map<number, Assignee[]>();
+  if (jobIds.length === 0) return map;
+  const rows = await db
+    .select({
+      jobId: jobAssignmentsTable.jobId,
+      userId: appUsersTable.id,
+      name: appUsersTable.name,
+      username: appUsersTable.username,
+      email: appUsersTable.email,
+    })
+    .from(jobAssignmentsTable)
+    .innerJoin(appUsersTable, eq(jobAssignmentsTable.userId, appUsersTable.id))
+    .where(inArray(jobAssignmentsTable.jobId, jobIds))
+    .orderBy(asc(jobAssignmentsTable.id));
+  for (const r of rows) {
+    const list = map.get(r.jobId) ?? [];
+    list.push({ id: r.userId, name: r.name || r.username || r.email || "Unknown" });
+    map.set(r.jobId, list);
+  }
+  return map;
 }
 
 /** estimatedInstallDate ascending, nulls last, then customer name. */
@@ -106,15 +140,81 @@ router.get("/jobs", requireUser, async (req, res): Promise<void> => {
     .where(and(...conditions))
     .orderBy(...installDateOrder);
 
+  const assignees = await assigneesByJob(rows.map((r) => r.job.id));
+
   res.json(
     ListJobsResponse.parse(
       rows.map(({ job, leadDate }) => ({
         ...toApi(job),
         leadDate: leadDate == null ? null : new Date(leadDate).toISOString(),
+        assignees: assignees.get(job.id) ?? [],
       })),
     ),
   );
 });
+
+router.put(
+  "/jobs/:id/assignees",
+  requireUser,
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = SetJobAssigneesParams.safeParse(req.params);
+    const body = SetJobAssigneesBody.safeParse(req.body);
+    if (!params.success || !body.success) {
+      res.status(400).json({ error: "Invalid request" });
+      return;
+    }
+    const userIds = [...new Set(body.data.userIds)];
+
+    const [job] = await db
+      .select()
+      .from(jobsTable)
+      .where(eq(jobsTable.id, params.data.id));
+    if (!job) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+    if (job.archivedAt) {
+      res
+        .status(409)
+        .json({ error: "This job is archived — restore it before assigning it" });
+      return;
+    }
+
+    if (userIds.length > 0) {
+      const users = await db
+        .select({ id: appUsersTable.id })
+        .from(appUsersTable)
+        .where(
+          and(inArray(appUsersTable.id, userIds), isNull(appUsersTable.removedAt)),
+        );
+      if (users.length !== userIds.length) {
+        res.status(400).json({ error: "One of those team members no longer exists" });
+        return;
+      }
+    }
+
+    // Full replacement in one transaction — the payload is the whole truth.
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(jobAssignmentsTable)
+        .where(eq(jobAssignmentsTable.jobId, job.id));
+      if (userIds.length > 0) {
+        await tx
+          .insert(jobAssignmentsTable)
+          .values(userIds.map((userId) => ({ jobId: job.id, userId })));
+      }
+    });
+
+    const assignees = await assigneesByJob([job.id]);
+    res.json(
+      SetJobAssigneesResponse.parse({
+        ...toApi(job),
+        assignees: assignees.get(job.id) ?? [],
+      }),
+    );
+  },
+);
 
 router.post("/jobs", requireUser, requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateJobBody.safeParse(req.body);

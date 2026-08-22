@@ -122,6 +122,23 @@ export default function ListPage() {
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [showArchived, setShowArchived] = React.useState(false);
 
+  // "My jobs" — techs default to seeing only the jobs assigned to them.
+  const [myJobsOnly, setMyJobsOnly] = React.useState(false);
+  const [myJobsInitFor, setMyJobsInitFor] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    if (!user || myJobsInitFor === user.id) return;
+    const saved = localStorage.getItem(`spc-myjobs:${user.id}`);
+    setMyJobsOnly(saved != null ? saved === "1" : user.role === "tech");
+    setMyJobsInitFor(user.id);
+  }, [user, myJobsInitFor]);
+  const toggleMyJobs = () => {
+    setMyJobsOnly(v => {
+      const nv = !v;
+      if (user) localStorage.setItem(`spc-myjobs:${user.id}`, nv ? "1" : "0");
+      return nv;
+    });
+  };
+
   // Which user's preferences the current state was initialized for. Held in
   // state (not a ref) so the persist effect below never runs against a userId
   // whose prefs haven't been loaded into state yet.
@@ -195,7 +212,11 @@ export default function ListPage() {
     // archived leads stay reachable and restorable.
     const visible = showArchived
       ? jobs
-      : jobs.filter((j) => stg.isJobStage(j.stage));
+      : jobs.filter(
+          (j) =>
+            stg.isJobStage(j.stage) &&
+            (!myJobsOnly || j.assignees?.some((a) => a.id === user?.id)),
+        );
     const dir = sort.dir === "asc" ? 1 : -1;
     const cmp = (a: Job, b: Job): number => {
       switch (sort.key) {
@@ -227,7 +248,7 @@ export default function ListPage() {
       }
     };
     return [...visible].sort(cmp);
-  }, [jobs, sort, showArchived, stg]);
+  }, [jobs, sort, showArchived, stg, myJobsOnly, user?.id]);
 
   const toggleSort = (key: SortKey) => {
     setSort((s) =>
@@ -274,6 +295,19 @@ export default function ListPage() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {user && user.role !== "viewer" && !showArchived && (
+              <button
+                onClick={toggleMyJobs}
+                className={`text-xs px-3 h-8 rounded-full border transition-colors inline-flex items-center gap-1.5 ${
+                  myJobsOnly
+                    ? "border-primary text-primary bg-primary/10"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+                title="Show only jobs assigned to you"
+              >
+                My jobs
+              </button>
+            )}
             <button
               onClick={() => setShowArchived((v) => !v)}
               className={`text-xs px-3 h-8 rounded-full border transition-colors inline-flex items-center gap-1.5 ${
@@ -375,8 +409,8 @@ export default function ListPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-accent/10">
-        <table className="w-full table-fixed text-sm text-left">
+      <div className="flex-1 overflow-auto custom-scrollbar bg-accent/10">
+        <table className="w-full min-w-[920px] table-fixed text-sm text-left">
           <thead className="bg-card text-muted-foreground text-[11px] uppercase font-semibold sticky top-0 z-10 shadow-[0_1px_0_0_hsl(var(--border))]">
             <tr>
               <SortableHeader label="Customer" sortKey="customerName" sort={sort} onSort={toggleSort} className="w-[14%] pl-4" />

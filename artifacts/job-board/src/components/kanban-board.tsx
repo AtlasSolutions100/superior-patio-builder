@@ -126,7 +126,7 @@ export function KanbanBoard({
     <>
       <div
         ref={scrollRef}
-        className="flex-1 overflow-x-auto overflow-y-hidden board-scrollbar"
+        className="flex-1 overflow-x-auto overflow-y-hidden board-scrollbar snap-x snap-proximity md:snap-none"
         onDragOver={e => {
           pointerX.current = e.clientX;
         }}
@@ -137,9 +137,11 @@ export function KanbanBoard({
           </div>
         ) : (
           <div
-            className="grid h-full gap-5 px-6 pb-6 min-w-full w-max"
+            className="grid h-full gap-4 md:gap-5 px-4 md:px-6 pb-6 min-w-full w-max"
             style={{
-              gridTemplateColumns: `repeat(${groups.length}, minmax(${COL_MIN_WIDTH}px, ${COL_MAX_WIDTH}px))`,
+              // On phones a column is ~85% of the viewport (swipe one at a
+              // time); on desktop the clamp caps it at the usual width.
+              gridTemplateColumns: `repeat(${groups.length}, clamp(${COL_MIN_WIDTH}px, 85vw, ${COL_MAX_WIDTH}px))`,
               // Bound the single row to the board height — otherwise the row
               // auto-sizes to the tallest column, the overflow gets clipped by
               // the board's overflow-y-hidden, and column lists never scroll.
@@ -215,7 +217,7 @@ function GroupColumn({
   const isDropTarget = !!draggingJob && dropStages.length > 0;
 
   return (
-    <div className="flex flex-col h-full max-h-full min-w-0 min-h-0">
+    <div className="flex flex-col h-full max-h-full min-w-0 min-h-0 snap-start scroll-ml-4">
       <div className="flex items-baseline gap-2 mb-3 shrink-0">
         <h3 className="text-sm font-medium text-foreground">{label}</h3>
         <span className="text-xs text-muted-foreground tabular-nums">{jobs.length}</span>

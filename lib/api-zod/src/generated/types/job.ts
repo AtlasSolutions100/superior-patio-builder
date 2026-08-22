@@ -5,6 +5,7 @@
  * Superior Patio Covers Job Board API
  * OpenAPI spec version: 0.1.0
  */
+import type { JobAssignee } from './jobAssignee';
 import type { JobStage } from './jobStage';
 
 export interface Job {
@@ -39,6 +40,8 @@ export interface Job {
      * @nullable
      */
   archivedAt?: string | null;
+  /** Team members assigned to this job. Populated on list responses and assignment updates. */
+  assignees?: JobAssignee[];
   /**
      * When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.
      * @nullable

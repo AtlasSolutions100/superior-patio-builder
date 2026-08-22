@@ -1,5 +1,5 @@
 import * as React from "react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, initials } from "@/lib/utils";
 import { useStages } from "@/hooks/use-stages";
 import { ChevronDown, CheckCircle2, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
@@ -186,6 +186,22 @@ export default function JobCard({
           <p className="text-xs text-muted-foreground line-clamp-1" title={job.lastNote}>
             {job.lastNote}
           </p>
+        )}
+
+        {variant === "job" && job.assignees && job.assignees.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap" title={job.assignees.map(a => a.name).join(", ")}>
+            {job.assignees.slice(0, 4).map(a => (
+              <span
+                key={a.id}
+                className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary"
+              >
+                {initials(a.name)}
+              </span>
+            ))}
+            {job.assignees.length > 4 && (
+              <span className="text-[10px] text-muted-foreground">+{job.assignees.length - 4}</span>
+            )}
+          </div>
         )}
 
         {isConverted && (

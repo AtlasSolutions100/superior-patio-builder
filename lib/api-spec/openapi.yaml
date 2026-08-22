@@ -533,6 +533,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
+  /jobs/{id}/assignees:
+    put:
+      operationId: setJobAssignees
+      tags: [jobs]
+      summary: Replace the set of team members assigned to a job (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobAssigneesUpdate"
+      responses:
+        "200":
+          description: The job with its updated assignees
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "400":
+          description: Unknown or removed team member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Job not found
   /jobs/{id}/archive:
     post:
       operationId: archiveJob
@@ -1183,6 +1215,11 @@ components:
         archivedAt:
           type: ["string", "null"]
           description: When set, the job is archived and hidden from the main views.
+        assignees:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobAssignee"
+          description: Team members assigned to this job. Populated on list responses and assignment updates.
         leadDate:
           type: ["string", "null"]
           description: When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.
@@ -1293,6 +1330,23 @@ components:
           minLength: 1
           maxLength: 2000
       required: [text]
+    JobAssignee:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+      required: [id, name]
+    JobAssigneesUpdate:
+      type: object
+      properties:
+        userIds:
+          type: array
+          items:
+            type: integer
+          description: Full replacement set of assigned team-member ids
+      required: [userIds]
     JobStageMove:
       type: object
       properties:

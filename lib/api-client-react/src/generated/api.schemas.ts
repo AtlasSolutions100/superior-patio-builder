@@ -226,6 +226,11 @@ export interface StageReorder {
  */
 export type JobStage = string;
 
+export interface JobAssignee {
+  id: number;
+  name: string;
+}
+
 export interface Job {
   id: number;
   customerName: string;
@@ -258,6 +263,8 @@ export interface Job {
      * @nullable
      */
   archivedAt?: string | null;
+  /** Team members assigned to this job. Populated on list responses and assignment updates. */
+  assignees?: JobAssignee[];
   /**
      * When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.
      * @nullable
@@ -325,6 +332,11 @@ export interface JobNoteInput {
      * @maxLength 2000
      */
   text: string;
+}
+
+export interface JobAssigneesUpdate {
+  /** Full replacement set of assigned team-member ids */
+  userIds: number[];
 }
 
 export interface JobStageMove {

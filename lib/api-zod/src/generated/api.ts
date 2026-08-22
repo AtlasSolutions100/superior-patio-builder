@@ -196,6 +196,10 @@ export const ListJobsResponseItem = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -243,6 +247,10 @@ export const CreateJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -290,6 +298,10 @@ export const GetJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -339,6 +351,10 @@ export const UpdateJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -384,6 +400,48 @@ export const MoveJobStageResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Replace the set of team members assigned to a job (full-access only)
+ */
+export const SetJobAssigneesParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const SetJobAssigneesBody = zod.object({
+  "userIds": zod.array(zod.int()).describe('Full replacement set of assigned team-member ids')
+})
+
+export const SetJobAssigneesResponse = zod.object({
+  "id": zod.int(),
+  "customerName": zod.string(),
+  "phone": zod.string().nullable(),
+  "address": zod.string().nullable(),
+  "city": zod.string().nullable(),
+  "coverType": zod.string().nullable(),
+  "contractAmount": zod.number().nullable(),
+  "source": zod.string().nullable(),
+  "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
+  "lastNote": zod.string().nullable(),
+  "invoicedWithQb": zod.boolean(),
+  "depositPaid": zod.boolean(),
+  "materialOrdered": zod.boolean(),
+  "materialReceived": zod.boolean(),
+  "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -414,6 +472,10 @@ export const ArchiveJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -444,6 +506,10 @@ export const UnarchiveJobResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -548,6 +614,10 @@ export const GetBoardSummaryResponse = zod.object({
   "materialOrdered": zod.boolean(),
   "materialReceived": zod.boolean(),
   "archivedAt": zod.string().nullish().describe('When set, the job is archived and hidden from the main views.'),
+  "assignees": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string()
+})).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
