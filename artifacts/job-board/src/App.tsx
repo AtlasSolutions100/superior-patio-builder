@@ -11,7 +11,6 @@ import { Toaster } from "sonner";
 import { AppShell } from "./components/layout/app-shell";
 import { useTheme } from "@/lib/theme";
 
-import LandingPage from "./pages/landing";
 import BoardPage from "./pages/board";
 import SalesPage from "./pages/sales";
 import ListPage from "./pages/list";
@@ -191,6 +190,14 @@ function DemoLoginButtons() {
 function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-8">
+      <div className="mb-6 max-w-md text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Superior Patio Covers
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Manage sales, installs, and field operations from one clear pipeline.
+        </p>
+      </div>
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
       <DemoLoginButtons />
     </div>
@@ -230,7 +237,7 @@ function HomeRedirect() {
         <Redirect to="/board" />
       </Show>
       <Show when="signed-out">
-        <LandingPage />
+        <Redirect to="/sign-in" />
       </Show>
     </>
   );

@@ -176,7 +176,9 @@ export default function TeamPage() {
       { data: { email, role: inviteRole as any } },
       {
         onSuccess: () => {
-          toast.success(`${email} will get ${inviteRole} access when they sign in`);
+          toast.success(
+            `${email} added — share the app link with them; they'll get ${inviteRole} access when they sign in with that email`,
+          );
           setIsInviteOpen(false);
           setInviteEmail("");
           setInviteRole("viewer");
@@ -381,7 +383,9 @@ export default function TeamPage() {
           <DialogHeader>
             <DialogTitle>Add Team Member</DialogTitle>
             <DialogDescription>
-              They'll get this role automatically the first time they sign in with this email.
+              They'll get this role automatically the first time they sign in
+              with this email. No invitation email is sent — share the app link
+              with them yourself.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInviteSubmit} className="space-y-4">
