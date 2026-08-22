@@ -11,7 +11,14 @@
  * --force is passed. Every record is fictional and is removed by
  * `pnpm --filter @workspace/scripts run purge:demo -- --confirm`.
  */
-import {
+import { asc, isNull, sql } from "drizzle-orm";
+import { assertDemoSafeDatabase } from "./demo-guard";
+
+// Fail closed BEFORE the database client is even loaded: demo data is
+// development-only and must never reach a live customer database.
+assertDemoSafeDatabase();
+
+const {
   db,
   pool,
   jobsTable,
@@ -19,8 +26,7 @@ import {
   jobAssignmentsTable,
   stagesTable,
   appUsersTable,
-} from "@workspace/db";
-import { asc, eq, isNull, sql } from "drizzle-orm";
+} = await import("@workspace/db");
 
 const force = process.argv.includes("--force");
 

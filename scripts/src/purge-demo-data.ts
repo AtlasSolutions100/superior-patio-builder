@@ -15,8 +15,14 @@
  * Pass --reset-ledger to clear the ledger too. That is a development-only
  * option: the next sync will re-import every row the sheet has ever held.
  */
-import { db, pool } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { assertDemoSafeDatabase } from "./demo-guard";
+
+// Fail closed BEFORE the database client is even loaded: this purge is
+// development-only and must never run against a live customer database.
+assertDemoSafeDatabase();
+
+const { db, pool } = await import("@workspace/db");
 
 const confirm = process.argv.includes("--confirm");
 const resetLedger = process.argv.includes("--reset-ledger");
