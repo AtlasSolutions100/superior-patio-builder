@@ -6,6 +6,7 @@ import leadSyncRouter from "./leadSync";
 import feedbackRouter from "./feedback";
 import demoRouter from "./demo";
 import stagesRouter from "./stages";
+import leadSourcesRouter from "./leadSources";
 
 const router: IRouter = Router();
 
@@ -15,6 +16,7 @@ router.use(usersRouter);
 router.use(stagesRouter);
 router.use(jobsRouter);
 router.use(leadSyncRouter);
+router.use(leadSourcesRouter);
 router.use(feedbackRouter);
 
 export default router;

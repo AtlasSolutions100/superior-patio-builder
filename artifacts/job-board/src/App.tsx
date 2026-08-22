@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { useState } from "react";
+import * as React from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth, useSignIn } from '@clerk/react';
 import { setAuthTokenGetter, setUnauthorizedRetryHandler } from "@workspace/api-client-react";
 import { publishableKeyFromHost } from '@clerk/react/internal';
@@ -203,6 +203,24 @@ function SignUpPage() {
   );
 }
 
+/**
+ * App pages require a session: signed-out visitors go to sign-in instead of
+ * an app shell full of 401 error states. Clerk's <Show> renders nothing
+ * while auth state loads, so there is no flicker.
+ */
+function Protected({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Show when="signed-in">
+        <AppShell>{children}</AppShell>
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
 function HomeRedirect() {
   return (
     <>
@@ -305,34 +323,34 @@ function ClerkProviderWithRoutes() {
           <Route path="/sign-up/*?" component={SignUpPage} />
           
           <Route path="/sales">
-            <AppShell>
+            <Protected>
               <SalesPage />
-            </AppShell>
+            </Protected>
           </Route>
           <Route path="/board">
-            <AppShell>
+            <Protected>
               <BoardPage />
-            </AppShell>
+            </Protected>
           </Route>
           <Route path="/list">
-            <AppShell>
+            <Protected>
               <ListPage />
-            </AppShell>
+            </Protected>
           </Route>
           <Route path="/team">
-            <AppShell>
+            <Protected>
               <TeamPage />
-            </AppShell>
+            </Protected>
           </Route>
           <Route path="/feedback">
-            <AppShell>
+            <Protected>
               <FeedbackPage />
-            </AppShell>
+            </Protected>
           </Route>
           <Route path="/settings">
-            <AppShell>
+            <Protected>
               <SettingsPage />
-            </AppShell>
+            </Protected>
           </Route>
           <Route>
             <HomeRedirect />

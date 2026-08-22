@@ -62,6 +62,62 @@ export interface BulkArchiveResult {
   count: number;
 }
 
+export interface LeadSource {
+  id: number;
+  name: string;
+  csvUrl: string;
+  enabled: boolean;
+  /** @nullable */
+  lastSyncedAt: string | null;
+  /** @nullable */
+  lastError: string | null;
+  lastImportedCount: number;
+  createdAt: string;
+}
+
+export interface LeadSourceInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name: string;
+  /** @minLength 1 */
+  csvUrl: string;
+}
+
+export interface LeadSourceUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name?: string;
+  /** @minLength 1 */
+  csvUrl?: string;
+  enabled?: boolean;
+}
+
+export interface LeadSourceTestRequest {
+  /** @minLength 1 */
+  csvUrl: string;
+}
+
+export interface LeadSourceTestResult {
+  ok: boolean;
+  /**
+     * The CSV export URL the importer would actually fetch
+     * @nullable
+     */
+  normalizedUrl: string | null;
+  /** Header row found in the sheet */
+  columns: string[];
+  /** Required columns the sheet is missing */
+  missingColumns: string[];
+  /** Data rows found (excluding the header) */
+  rowCount: number;
+  /** @nullable */
+  error: string | null;
+}
+
 /**
  * One-way spreadsheet lead import status
  */

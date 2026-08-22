@@ -564,6 +564,126 @@ export const ExportJobsCsvResponse = zod.unknown()
 
 
 /**
+ * @summary Lead sheets the importer pulls from (full-access only)
+ */
+export const ListLeadSourcesResponseItem = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "csvUrl": zod.string(),
+  "enabled": zod.boolean(),
+  "lastSyncedAt": zod.string().nullable(),
+  "lastError": zod.string().nullable(),
+  "lastImportedCount": zod.int(),
+  "createdAt": zod.string()
+})
+export const ListLeadSourcesResponse = zod.array(ListLeadSourcesResponseItem)
+
+
+/**
+ * @summary Add a lead sheet (full-access only). Share/edit links are normalized to CSV export URLs.
+ */
+export const createLeadSourceBodyNameMax = 80;
+
+
+
+
+export const CreateLeadSourceBody = zod.object({
+  "name": zod.string().min(1).max(createLeadSourceBodyNameMax),
+  "csvUrl": zod.string().min(1)
+})
+
+export const CreateLeadSourceResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "csvUrl": zod.string(),
+  "enabled": zod.boolean(),
+  "lastSyncedAt": zod.string().nullable(),
+  "lastError": zod.string().nullable(),
+  "lastImportedCount": zod.int(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Fetch a sheet URL and report whether the importer can read it (full-access only)
+ */
+
+
+
+export const TestLeadSourceBody = zod.object({
+  "csvUrl": zod.string().min(1)
+})
+
+export const TestLeadSourceResponse = zod.object({
+  "ok": zod.boolean(),
+  "normalizedUrl": zod.string().nullable().describe('The CSV export URL the importer would actually fetch'),
+  "columns": zod.array(zod.string()).describe('Header row found in the sheet'),
+  "missingColumns": zod.array(zod.string()).describe('Required columns the sheet is missing'),
+  "rowCount": zod.int().describe('Data rows found (excluding the header)'),
+  "error": zod.string().nullable()
+})
+
+
+/**
+ * @summary Rename, repoint, or enable/disable a lead sheet (full-access only)
+ */
+export const UpdateLeadSourceParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const updateLeadSourceBodyNameMax = 80;
+
+
+
+
+export const UpdateLeadSourceBody = zod.object({
+  "name": zod.string().min(1).max(updateLeadSourceBodyNameMax).optional(),
+  "csvUrl": zod.string().min(1).optional(),
+  "enabled": zod.boolean().optional()
+})
+
+export const UpdateLeadSourceResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "csvUrl": zod.string(),
+  "enabled": zod.boolean(),
+  "lastSyncedAt": zod.string().nullable(),
+  "lastError": zod.string().nullable(),
+  "lastImportedCount": zod.int(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Remove a lead sheet (full-access only). Already-imported leads stay in the app.
+ */
+export const DeleteLeadSourceParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteLeadSourceResponse = zod.void()
+
+
+/**
+ * @summary Import from one lead sheet right now (full-access only)
+ */
+export const SyncLeadSourceParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const SyncLeadSourceResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "csvUrl": zod.string(),
+  "enabled": zod.boolean(),
+  "lastSyncedAt": zod.string().nullable(),
+  "lastError": zod.string().nullable(),
+  "lastImportedCount": zod.int(),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary Spreadsheet lead sync status (full-access only)
  */
 export const GetLeadSyncStatusResponse = zod.object({

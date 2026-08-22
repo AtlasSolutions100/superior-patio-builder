@@ -5,10 +5,19 @@ import {
   useUpdateStage,
   useRemoveStage,
   useReorderStages,
+  useListLeadSources,
+  useCreateLeadSource,
+  useTestLeadSource,
+  useUpdateLeadSource,
+  useDeleteLeadSource,
+  useSyncLeadSource,
   getListStagesQueryKey,
+  getListLeadSourcesQueryKey,
   getListJobsQueryKey,
   getGetBoardSummaryQueryKey,
   type Stage,
+  type LeadSource,
+  type LeadSourceTestResult,
 } from "@workspace/api-client-react";
 import { useStages } from "@/hooks/use-stages";
 import { queryClient } from "@/lib/query-client";
@@ -25,12 +34,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   Check,
+  CheckCircle2,
   Loader2,
   Pencil,
   Plus,
+  RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
@@ -84,6 +96,7 @@ export default function SettingsPage() {
               stages={stg.jobStages}
               showFlags
             />
+            <LeadSheetsSection />
           </div>
         )}
       </div>
@@ -448,5 +461,292 @@ function RemoveStageDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// Lead sheets — the Google Sheets the importer pulls new leads from.
+// ---------------------------------------------------------------------------
+
+function fmtWhen(iso: string | null): string {
+  if (!iso) return "never";
+  const d = new Date(iso);
+  const mins = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function LeadSheetsSection() {
+  const { data: sources, isLoading } = useListLeadSources({
+    query: { queryKey: getListLeadSourcesQueryKey() },
+  });
+  const createSource = useCreateLeadSource();
+  const testSource = useTestLeadSource();
+
+  const [name, setName] = React.useState("");
+  const [url, setUrl] = React.useState("");
+  const [testResult, setTestResult] = React.useState<LeadSourceTestResult | null>(null);
+
+  const invalidateSources = () => {
+    queryClient.invalidateQueries({ queryKey: getListLeadSourcesQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetBoardSummaryQueryKey() });
+  };
+
+  const handleTest = () => {
+    if (!url.trim()) return;
+    setTestResult(null);
+    testSource.mutate(
+      { data: { csvUrl: url.trim() } },
+      {
+        onSuccess: setTestResult,
+        onError: () => toast.error("Couldn't test that link — try again."),
+      },
+    );
+  };
+
+  const handleAdd = () => {
+    if (!name.trim() || !url.trim()) {
+      toast.error("Give the sheet a name and paste its link");
+      return;
+    }
+    createSource.mutate(
+      { data: { name: name.trim(), csvUrl: url.trim() } },
+      {
+        onSuccess: (created) => {
+          setName("");
+          setUrl("");
+          setTestResult(null);
+          invalidateSources();
+          toast.success(`Added "${created.name}" — it syncs every 15 minutes`);
+        },
+        onError: (err: any) => toast.error(errMsg(err, "Couldn't add the sheet — try again.")),
+      },
+    );
+  };
+
+  return (
+    <section>
+      <h2 className="text-sm font-semibold text-foreground">Lead sheets</h2>
+      <p className="text-xs text-muted-foreground mt-0.5 mb-3 max-w-xl">
+        Google Sheets that new leads are imported from, checked every 15
+        minutes. The sheet must be shared as "Anyone with the link → Viewer"
+        and have Date, First Name, Last Name, and Phone columns. A lead is
+        never imported twice, even if it appears in two sheets.
+      </p>
+
+      <div className="rounded-lg border border-border bg-card divide-y divide-border">
+        {isLoading ? (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin inline mr-1.5" /> Loading…
+          </div>
+        ) : (sources ?? []).length === 0 ? (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+            No lead sheets yet — paste your sheet's link below and new leads
+            will start flowing into the Sales Pipeline.
+          </div>
+        ) : (
+          (sources ?? []).map((src) => (
+            <LeadSheetRow key={src.id} source={src} onChanged={invalidateSources} />
+          ))
+        )}
+      </div>
+
+      <div className="mt-3 space-y-2 max-w-xl">
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name, e.g. Manufacturer leads"
+            className="h-8 text-sm w-44"
+          />
+          <Input
+            value={url}
+            onChange={(e) => { setUrl(e.target.value); setTestResult(null); }}
+            placeholder="Paste the Google Sheet link"
+            className="h-8 text-sm flex-1 min-w-[16rem]"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={handleTest}
+            disabled={testSource.isPending || !url.trim()}
+          >
+            {testSource.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Check className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            Test
+          </Button>
+          <Button
+            size="sm"
+            className="h-8"
+            onClick={handleAdd}
+            disabled={createSource.isPending || !name.trim() || !url.trim()}
+          >
+            {createSource.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            Add sheet
+          </Button>
+        </div>
+
+        {testResult && (
+          <div
+            className={`rounded-md border px-3 py-2 text-xs ${
+              testResult.ok
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+                : "border-destructive/40 bg-destructive/5 text-destructive"
+            }`}
+          >
+            {testResult.ok ? (
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Looks good — {testResult.rowCount} row{testResult.rowCount === 1 ? "" : "s"} found, all
+                required columns present.
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                {testResult.error}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function LeadSheetRow({
+  source,
+  onChanged,
+}: {
+  source: LeadSource;
+  onChanged: () => void;
+}) {
+  const updateSource = useUpdateLeadSource();
+  const deleteSource = useDeleteLeadSource();
+  const syncOne = useSyncLeadSource();
+
+  const handleToggle = (enabled: boolean) => {
+    updateSource.mutate(
+      { id: source.id, data: { enabled } },
+      {
+        onSuccess: onChanged,
+        onError: (err: any) => toast.error(errMsg(err, "Couldn't update the sheet — try again.")),
+      },
+    );
+  };
+
+  const handleDelete = () => {
+    if (
+      !window.confirm(
+        `Remove "${source.name}"? Leads already imported from it stay in the app; no new leads will come from this sheet.`,
+      )
+    )
+      return;
+    deleteSource.mutate(
+      { id: source.id },
+      {
+        onSuccess: () => {
+          onChanged();
+          toast.success(`Removed "${source.name}"`);
+        },
+        onError: (err: any) => toast.error(errMsg(err, "Couldn't remove the sheet — try again.")),
+      },
+    );
+  };
+
+  const handleSync = () => {
+    syncOne.mutate(
+      { id: source.id },
+      {
+        onSuccess: (fresh) => {
+          onChanged();
+          if (fresh.lastError) {
+            toast.error(`${fresh.name}: ${fresh.lastError}`);
+          } else {
+            toast.success(
+              fresh.lastImportedCount > 0
+                ? `Imported ${fresh.lastImportedCount} new lead${fresh.lastImportedCount === 1 ? "" : "s"} from ${fresh.name}`
+                : `${fresh.name} is up to date — no new leads`,
+            );
+          }
+        },
+        onError: (err: any) => toast.error(errMsg(err, "Couldn't sync that sheet — try again.")),
+      },
+    );
+  };
+
+  return (
+    <div className="px-3 py-2.5 flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium truncate">{source.name}</span>
+          {!source.enabled && (
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground border border-border rounded-full px-1.5">
+              Paused
+            </span>
+          )}
+        </div>
+        <div className="text-[11px] text-muted-foreground truncate" title={source.csvUrl}>
+          {source.csvUrl}
+        </div>
+        <div className="text-[11px] mt-0.5">
+          {source.lastError ? (
+            <span className="text-destructive inline-flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 shrink-0" />
+              {source.lastError}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">
+              Last synced {fmtWhen(source.lastSyncedAt)}
+              {source.lastSyncedAt
+                ? ` · ${source.lastImportedCount} new last time`
+                : ""}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <label
+        className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer shrink-0"
+        title="Paused sheets are skipped by the importer"
+      >
+        <Switch
+          checked={source.enabled}
+          onCheckedChange={handleToggle}
+          className="scale-75"
+        />
+        Sync
+      </label>
+
+      <button
+        type="button"
+        onClick={handleSync}
+        disabled={syncOne.isPending || !source.enabled}
+        className="p-1.5 text-muted-foreground hover:text-primary transition-colors disabled:opacity-40 shrink-0"
+        title="Import from this sheet now"
+      >
+        <RefreshCw className={`w-3.5 h-3.5 ${syncOne.isPending ? "animate-spin" : ""}`} />
+      </button>
+
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={deleteSource.isPending}
+        className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+        title="Remove this sheet"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
   );
 }

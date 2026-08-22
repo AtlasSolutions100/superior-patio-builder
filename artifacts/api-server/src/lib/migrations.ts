@@ -1,5 +1,6 @@
 import { pool, DEFAULT_STAGES } from "@workspace/db";
 import { logger } from "./logger";
+import { LEGACY_SHEET_CSV_URL } from "./leadSync";
 
 /**
  * Idempotent, additive schema migrations run at startup so fresh
@@ -74,9 +75,23 @@ export async function runStartupMigrations(): Promise<void> {
         CONSTRAINT job_assignments_job_user_uq UNIQUE (job_id, user_id)
       );
       CREATE INDEX IF NOT EXISTS job_assignments_user_id_idx ON job_assignments(user_id);
+
+      -- Admin-managed lead sheets (Settings). Replaces the hardcoded/env URL.
+      CREATE TABLE IF NOT EXISTS lead_sources (
+        id serial PRIMARY KEY,
+        name text NOT NULL,
+        csv_url text NOT NULL,
+        enabled boolean NOT NULL DEFAULT true,
+        last_synced_at timestamptz,
+        last_error text,
+        last_imported_count integer NOT NULL DEFAULT 0,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
     `);
 
     await seedStages();
+    await seedLeadSources();
     logger.info("Startup migrations applied");
   } catch (err) {
     logger.error({ err }, "Startup migrations failed");
@@ -134,4 +149,29 @@ async function seedStages(): Promise<void> {
     ON CONFLICT (key) DO NOTHING
   `);
   if (rowCount) logger.warn({ rowCount }, "Created stages for orphaned job stage keys");
+}
+
+/**
+ * One-time convergence for databases that were already syncing before lead
+ * sources became data: carry the env/legacy sheet URL into the table so the
+ * import keeps working. A fresh database gets NO sources — the admin adds
+ * their own sheet on the Settings page.
+ */
+async function seedLeadSources(): Promise<void> {
+  const { rows } = await pool.query<{ count: number }>(
+    "SELECT count(*)::int AS count FROM lead_sources",
+  );
+  if (rows[0].count > 0) return;
+
+  const envUrl = process.env["LEAD_SHEET_CSV_URL"];
+  const { rows: imports } = await pool.query<{ count: number }>(
+    "SELECT count(*)::int AS count FROM lead_imports",
+  );
+  if (!envUrl && imports[0].count === 0) return; // fresh install: stay empty
+
+  await pool.query(
+    "INSERT INTO lead_sources (name, csv_url) VALUES ($1, $2)",
+    ["Lead sheet", envUrl || LEGACY_SHEET_CSV_URL],
+  );
+  logger.info("Seeded lead source from pre-Settings configuration");
 }

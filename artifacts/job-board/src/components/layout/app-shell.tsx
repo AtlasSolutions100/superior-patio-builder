@@ -94,7 +94,7 @@ export function AppShell({ children }: AppShellProps) {
   const { signOut } = useClerk();
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-  const { data: user, isLoading } = useGetCurrentUser();
+  const { data: user, isLoading, error: meError } = useGetCurrentUser();
   const updateMyProfile = useUpdateMyProfile();
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = React.useState(false);
@@ -119,6 +119,33 @@ export function AppShell({ children }: AppShellProps) {
   const handleSignOut = () => {
     signOut({ redirectUrl: basePath || "/" });
   };
+
+  // 403 from /me means the account has no access (invite-only sign-up, or
+  // an admin removed it). Show why instead of a broken empty app.
+  const accessDenied =
+    (meError as any)?.status === 403
+      ? ((meError as any)?.data?.error as string | undefined) ??
+        "Your account doesn't have access to this app."
+      : null;
+  if (accessDenied) {
+    return (
+      <div className="flex h-[100dvh] w-full items-center justify-center bg-background p-6 text-foreground">
+        <div className="max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+            SP
+          </div>
+          <h1 className="text-lg font-semibold">No access yet</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{accessDenied}</p>
+          <button
+            onClick={handleSignOut}
+            className="mt-6 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const userBlock = isLoading ? (
     <div className="flex items-center gap-3 px-3 py-2">

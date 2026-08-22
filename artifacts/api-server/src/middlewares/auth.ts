@@ -66,7 +66,19 @@ export async function requireUser(
       const [{ count }] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(appUsersTable);
-      role = count === 0 ? "admin" : "viewer";
+      if (count === 0) {
+        // Bootstrap: the very first person to ever sign in owns the app.
+        role = "admin";
+      } else {
+        // Invite-only: an unknown email gets no account and no data. The
+        // Clerk user may exist, but nothing is provisioned here.
+        res.status(403).json({
+          error: `This app is invite-only. Ask your admin to invite ${
+            email ?? "your email"
+          } on the Team page, then sign in again.`,
+        });
+        return;
+      }
     }
 
     [user] = await db

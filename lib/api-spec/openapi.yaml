@@ -704,6 +704,128 @@ paths:
             text/csv:
               schema:
                 type: string
+  /lead-sources:
+    get:
+      operationId: listLeadSources
+      tags: [stages]
+      summary: Lead sheets the importer pulls from (full-access only)
+      responses:
+        "200":
+          description: All lead sources with their sync status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeadSource"
+    post:
+      operationId: createLeadSource
+      tags: [stages]
+      summary: Add a lead sheet (full-access only). Share/edit links are normalized to CSV export URLs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadSourceInput"
+      responses:
+        "201":
+          description: Created source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadSource"
+        "400":
+          description: Invalid name or URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /lead-sources/test:
+    post:
+      operationId: testLeadSource
+      tags: [stages]
+      summary: Fetch a sheet URL and report whether the importer can read it (full-access only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadSourceTestRequest"
+      responses:
+        "200":
+          description: What the importer found at that URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadSourceTestResult"
+  /lead-sources/{id}:
+    patch:
+      operationId: updateLeadSource
+      tags: [stages]
+      summary: Rename, repoint, or enable/disable a lead sheet (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadSourceUpdate"
+      responses:
+        "200":
+          description: Updated source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadSource"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Source not found
+    delete:
+      operationId: deleteLeadSource
+      tags: [stages]
+      summary: Remove a lead sheet (full-access only). Already-imported leads stay in the app.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Source removed
+        "404":
+          description: Source not found
+  /lead-sources/{id}/sync:
+    post:
+      operationId: syncLeadSource
+      tags: [stages]
+      summary: Import from one lead sheet right now (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The source with its refreshed sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadSource"
+        "404":
+          description: Source not found
   /lead-sync/status:
     get:
       operationId: getLeadSyncStatus
@@ -996,6 +1118,80 @@ components:
           description: Leads archived, or matching leads when dryRun
       required:
         - count
+    LeadSource:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        csvUrl:
+          type: string
+        enabled:
+          type: boolean
+        lastSyncedAt:
+          type: ["string", "null"]
+        lastError:
+          type: ["string", "null"]
+        lastImportedCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, name, csvUrl, enabled, lastSyncedAt, lastError, lastImportedCount, createdAt]
+    LeadSourceInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        csvUrl:
+          type: string
+          minLength: 1
+      required: [name, csvUrl]
+    LeadSourceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        csvUrl:
+          type: string
+          minLength: 1
+        enabled:
+          type: boolean
+    LeadSourceTestRequest:
+      type: object
+      properties:
+        csvUrl:
+          type: string
+          minLength: 1
+      required: [csvUrl]
+    LeadSourceTestResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        normalizedUrl:
+          type: ["string", "null"]
+          description: The CSV export URL the importer would actually fetch
+        columns:
+          type: array
+          items:
+            type: string
+          description: Header row found in the sheet
+        missingColumns:
+          type: array
+          items:
+            type: string
+          description: Required columns the sheet is missing
+        rowCount:
+          type: integer
+          description: Data rows found (excluding the header)
+        error:
+          type: ["string", "null"]
+      required: [ok, normalizedUrl, columns, missingColumns, rowCount, error]
     LeadSyncStatus:
       type: object
       description: One-way spreadsheet lead import status

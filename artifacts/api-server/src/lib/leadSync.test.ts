@@ -12,8 +12,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { eq, inArray } from "drizzle-orm";
-import { db, pool, jobsTable, jobNotesTable, leadImportsTable } from "@workspace/db";
-import { parseCsv, mapRows, syncLeadsFromSheet } from "./leadSync";
+import { db, pool, jobsTable, jobNotesTable, leadImportsTable, leadSourcesTable } from "@workspace/db";
+import { parseCsv, mapRows, syncLeadsFromSheet, normalizeSheetUrl } from "./leadSync";
 import { leadDateSql } from "./leadDate";
 
 const MARKER = `__leadSync-test-${Date.now()}`;
@@ -130,6 +130,13 @@ test("KEY-FORMAT CONTRACT: the leadDate parser accepts keys the importer builds"
 // ---------------------------------------------------------------------------
 
 test("re-running a sync over the same CSV imports each row exactly once", async () => {
+  // The sync loop reads enabled sources from the DB now — give it one whose
+  // fetch the stub below will answer. Other enabled sources get the same
+  // stubbed CSV, which the global dedupe ledger makes harmless.
+  const [tempSource] = await db
+    .insert(leadSourcesTable)
+    .values({ name: MARKER, csvUrl: "https://example.com/" + MARKER })
+    .returning();
   const csv = csvOf(
     `2026-05-01 09:00:00,${MARKER},SyncOne,${PHONE_A},,,"663 Sarah Ave, Twin Falls, ID",First note,Patio Cover,google`,
     `2026-05-01 10:00:00,${MARKER},SyncTwo,${PHONE_B},,,,,,website`,
@@ -148,6 +155,7 @@ test("re-running a sync over the same CSV imports each row exactly once", async 
     assert.equal(second, 0, "second run over the same CSV imports nothing");
   } finally {
     globalThis.fetch = realFetch;
+    await db.delete(leadSourcesTable).where(eq(leadSourcesTable.id, tempSource.id));
   }
 
   const ledger = await db
@@ -157,4 +165,26 @@ test("re-running a sync over the same CSV imports each row exactly once", async 
   const jobIds = ledger.map(l => l.jobId).filter((v): v is number => v != null);
   createdJobIds.push(...jobIds);
   assert.equal(jobIds.length, 2, "exactly one job per unique sheet row");
+});
+
+// ---------------------------------------------------------------------------
+// Sheet URL normalization (what admins paste into Settings)
+// ---------------------------------------------------------------------------
+
+test("normalizeSheetUrl converts share/edit links to CSV export URLs", () => {
+  assert.equal(
+    normalizeSheetUrl("https://docs.google.com/spreadsheets/d/ABC123_x-y/edit#gid=1886246861"),
+    "https://docs.google.com/spreadsheets/d/ABC123_x-y/export?format=csv&gid=1886246861",
+  );
+  assert.equal(
+    normalizeSheetUrl("https://docs.google.com/spreadsheets/d/ABC123/edit?usp=sharing"),
+    "https://docs.google.com/spreadsheets/d/ABC123/export?format=csv&gid=0",
+  );
+  // Already an export URL: untouched.
+  const exportUrl = "https://docs.google.com/spreadsheets/d/ABC/export?format=csv&gid=7";
+  assert.equal(normalizeSheetUrl(exportUrl), exportUrl);
+  // Non-Google http(s): untouched. Non-URLs: rejected.
+  assert.equal(normalizeSheetUrl("https://example.com/leads.csv"), "https://example.com/leads.csv");
+  assert.equal(normalizeSheetUrl("not a url"), null);
+  assert.equal(normalizeSheetUrl("ftp://example.com/x.csv"), null);
 });

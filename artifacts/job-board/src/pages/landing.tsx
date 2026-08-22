@@ -19,11 +19,8 @@ export default function LandingPage() {
           </span>
         </div>
         <div>
-          <Button asChild variant="ghost" className="mr-2">
-            <Link href="/sign-in">Sign In</Link>
-          </Button>
           <Button asChild>
-            <Link href="/sign-up">Get Started</Link>
+            <Link href="/sign-in">Sign In</Link>
           </Button>
         </div>
       </header>
