@@ -160,6 +160,8 @@ export default function TeamPage() {
   const [invitedMember, setInvitedMember] = React.useState<{
     email: string;
     role: string;
+    emailSent: boolean;
+    emailError: string | null;
   } | null>(null);
   const [editingUser, setEditingUser] = React.useState<AppUser | null>(null);
 
@@ -252,8 +254,13 @@ export default function TeamPage() {
     createInvite.mutate(
       { data: { email, role: inviteRole as any } },
       {
-        onSuccess: () => {
-          setInvitedMember({ email, role: inviteRole });
+        onSuccess: (res) => {
+          setInvitedMember({
+            email,
+            role: inviteRole,
+            emailSent: res.emailSent,
+            emailError: res.emailError ?? null,
+          });
           setInviteEmail("");
           setInviteRole("viewer");
           invalidate();
@@ -473,8 +480,14 @@ export default function TeamPage() {
                     {invitedMember.email}
                   </span>{" "}
                   will get {invitedMember.role} access the first time they sign
-                  in with that email. No invitation email is sent — copy the app
-                  link below and share it with them yourself.
+                  in with that email.{" "}
+                  {invitedMember.emailSent
+                    ? "They've been emailed an invitation with a link to the app — you can also copy the link below to share it yourself."
+                    : `The invitation email couldn't be sent${
+                        invitedMember.emailError
+                          ? ` (${invitedMember.emailError})`
+                          : ""
+                      } — copy the app link below and share it with them yourself.`}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="sm:justify-between gap-2">
@@ -504,9 +517,9 @@ export default function TeamPage() {
           <DialogHeader>
             <DialogTitle>Add Team Member</DialogTitle>
             <DialogDescription>
-              They'll get this role automatically the first time they sign in
-              with this email. No invitation email is sent — share the app link
-              with them yourself.
+              They'll get an invitation email with a link to the app, and
+              this role automatically the first time they sign in with this
+              email.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInviteSubmit} className="space-y-4">

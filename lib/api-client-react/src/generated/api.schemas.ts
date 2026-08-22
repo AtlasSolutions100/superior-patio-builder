@@ -181,6 +181,23 @@ export interface TeamInvite {
   createdAt: string;
 }
 
+/**
+ * Created invite plus the outcome of the invitation email send.
+ */
+export interface TeamInviteCreateResult {
+  id: number;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+  /** Whether the invitation email was sent to the invitee */
+  emailSent: boolean;
+  /**
+     * Why the invitation email could not be sent (invite is still recorded)
+     * @nullable
+     */
+  emailError?: string | null;
+}
+
 export interface TeamInviteInput {
   email: string;
   role: UserRole;

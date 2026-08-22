@@ -40,6 +40,7 @@ export * from './stageReorder';
 export * from './stageSummary';
 export * from './stageUpdate';
 export * from './teamInvite';
+export * from './teamInviteCreateResult';
 export * from './teamInviteInput';
 export * from './teamInviteUpdate';
 export * from './userRole';

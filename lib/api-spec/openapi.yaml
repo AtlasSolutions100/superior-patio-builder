@@ -204,11 +204,11 @@ paths:
               $ref: "#/components/schemas/TeamInviteInput"
       responses:
         "201":
-          description: Created invite
+          description: Created invite (email send outcome included)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TeamInvite"
+                $ref: "#/components/schemas/TeamInviteCreateResult"
         "400":
           description: Validation error
           content:
@@ -1262,6 +1262,25 @@ components:
         createdAt:
           type: string
       required: [id, email, role, createdAt]
+    TeamInviteCreateResult:
+      type: object
+      description: Created invite plus the outcome of the invitation email send.
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        createdAt:
+          type: string
+        emailSent:
+          type: boolean
+          description: Whether the invitation email was sent to the invitee
+        emailError:
+          type: ["string", "null"]
+          description: Why the invitation email could not be sent (invite is still recorded)
+      required: [id, email, role, createdAt, emailSent]
     TeamInviteInput:
       type: object
       properties:

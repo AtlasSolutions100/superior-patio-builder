@@ -50,6 +50,7 @@ import type {
   StageReorder,
   StageUpdate,
   TeamInvite,
+  TeamInviteCreateResult,
   TeamInviteInput,
   TeamInviteUpdate,
   UserRoleUpdate
@@ -616,9 +617,9 @@ export const getCreateInviteUrl = () => {
 /**
  * @summary Pre-assign a role to an email before first sign-in (full-access only)
  */
-export const createInvite = async (teamInviteInput: TeamInviteInput, options?: Parameters<typeof customFetch>[1]): Promise<TeamInvite> => {
+export const createInvite = async (teamInviteInput: TeamInviteInput, options?: Parameters<typeof customFetch>[1]): Promise<TeamInviteCreateResult> => {
 
-  return customFetch<TeamInvite>(getCreateInviteUrl(),
+  return customFetch<TeamInviteCreateResult>(getCreateInviteUrl(),
   {
     ...options,
     method: 'POST',

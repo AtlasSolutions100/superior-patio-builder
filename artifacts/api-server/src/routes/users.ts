@@ -20,6 +20,7 @@ import {
 } from "@workspace/api-zod";
 import { requireUser, requireAdmin } from "../middlewares/auth";
 import { isDemoEnvironment, isDemoEmail } from "../lib/demoAccounts";
+import { sendInviteEmail } from "../lib/inviteEmail";
 
 const router: IRouter = Router();
 
@@ -317,10 +318,23 @@ router.post("/invites", requireUser, requireAdmin, async (req, res): Promise<voi
     return;
   }
 
+  // Only a freshly recorded invite triggers an email — duplicates and
+  // rejected invites returned above never reach this point. A send failure
+  // is reported to the admin, but the invite itself stands either way.
+  const emailResult = await sendInviteEmail(invite.email, invite.role);
+  if (!emailResult.sent) {
+    req.log.warn(
+      { email: invite.email, error: emailResult.error },
+      "Invitation email could not be sent",
+    );
+  }
+
   res.status(201).json(
     CreateInviteResponse.parse({
       ...invite,
       createdAt: invite.createdAt.toISOString(),
+      emailSent: emailResult.sent,
+      emailError: emailResult.sent ? null : emailResult.error,
     }),
   );
 });

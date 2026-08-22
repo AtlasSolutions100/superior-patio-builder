@@ -133,8 +133,10 @@ export const CreateInviteResponse = zod.object({
   "id": zod.int(),
   "email": zod.string(),
   "role": zod.enum(['admin', 'tech', 'viewer']).describe('admin = full edit (Justin, Blair); tech = view + move to Installed + add note; viewer = view only'),
-  "createdAt": zod.string()
-})
+  "createdAt": zod.string(),
+  "emailSent": zod.boolean().describe('Whether the invitation email was sent to the invitee'),
+  "emailError": zod.string().nullish().describe('Why the invitation email could not be sent (invite is still recorded)')
+}).describe('Created invite plus the outcome of the invitation email send.')
 
 
 /**

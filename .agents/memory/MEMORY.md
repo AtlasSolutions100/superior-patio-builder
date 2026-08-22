@@ -10,3 +10,4 @@
 - [Artifact workflow ownership](artifact-workflow-ownership.md) — once imported artifact services are registered, remove any temporary duplicate workflows before starting the managed services.
 - [Demo data guard policy](demo-data-guard.md) — demo seed/purge must fail closed: hard prod denies beat all overrides; only target-bound host opt-ins, never blanket flags.
 - [GitHub API sync](github-api-sync.md) — GitHub OAuth may support REST calls without authenticating local Git; verify exact objects before an API-mediated sync.
+- [Clerk invitation emails](clerk-invitation-emails.md) — invite emails go through Clerk createInvitation (ignoreExisting, REPLIT_DOMAINS redirect); sends fail as data, never fail the invite.
