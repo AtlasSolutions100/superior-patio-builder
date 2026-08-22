@@ -10,10 +10,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Pencil, Plus, ShieldAlert, X } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  Link as LinkIcon,
+  Loader2,
+  Pencil,
+  Plus,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { queryClient } from "@/lib/query-client";
 import { formatDate } from "@/lib/utils";
+import {
+  copyTextToClipboard,
+  getAppShareUrl,
+  isDevAppLink,
+} from "@/lib/app-link";
 import {
   useListUsers,
   useUpdateUserRole,
@@ -47,6 +61,56 @@ const ROLE_OPTIONS = [
   { value: "tech", label: "Tech (Install + Notes)" },
   { value: "admin", label: "Admin (Full Edit)" },
 ] as const;
+
+async function copyAppLink(): Promise<boolean> {
+  const url = getAppShareUrl();
+  const ok = await copyTextToClipboard(url);
+  if (!ok) {
+    toast.error(`Couldn't copy automatically — the app link is ${url}`);
+    return false;
+  }
+  if (isDevAppLink()) {
+    toast.success("App link copied", {
+      description:
+        "This is a temporary development link — publish the app to get a permanent one.",
+    });
+  } else {
+    toast.success("App link copied");
+  }
+  return true;
+}
+
+function CopyAppLinkButton({
+  variant = "outline",
+  className,
+}: {
+  variant?: "outline" | "default";
+  className?: string;
+}) {
+  const [copied, setCopied] = React.useState(false);
+  return (
+    <Button
+      type="button"
+      variant={variant}
+      size="sm"
+      className={className}
+      onClick={async () => {
+        const ok = await copyAppLink();
+        if (ok) {
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 2000);
+        }
+      }}
+    >
+      {copied ? (
+        <Check className="w-4 h-4 mr-1.5" />
+      ) : (
+        <LinkIcon className="w-4 h-4 mr-1.5" />
+      )}
+      {copied ? "Copied" : "Copy app link"}
+    </Button>
+  );
+}
 
 function RoleSelect({
   value,
@@ -93,7 +157,20 @@ export default function TeamPage() {
   const [isInviteOpen, setIsInviteOpen] = React.useState(false);
   const [inviteEmail, setInviteEmail] = React.useState("");
   const [inviteRole, setInviteRole] = React.useState("viewer");
+  const [invitedMember, setInvitedMember] = React.useState<{
+    email: string;
+    role: string;
+  } | null>(null);
   const [editingUser, setEditingUser] = React.useState<AppUser | null>(null);
+
+  const handleInviteOpenChange = (open: boolean) => {
+    setIsInviteOpen(open);
+    if (!open) {
+      setInvitedMember(null);
+      setInviteEmail("");
+      setInviteRole("viewer");
+    }
+  };
 
   if (isLoadingMe) {
     return (
@@ -176,10 +253,7 @@ export default function TeamPage() {
       { data: { email, role: inviteRole as any } },
       {
         onSuccess: () => {
-          toast.success(
-            `${email} added — share the app link with them; they'll get ${inviteRole} access when they sign in with that email`,
-          );
-          setIsInviteOpen(false);
+          setInvitedMember({ email, role: inviteRole });
           setInviteEmail("");
           setInviteRole("viewer");
           invalidate();
@@ -324,6 +398,13 @@ export default function TeamPage() {
                               disabled={updateInvite.isPending}
                             />
                             <button
+                              onClick={() => copyAppLink()}
+                              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                              title="Copy app link"
+                            >
+                              <LinkIcon className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleInviteRemove(invite.id, invite.email)}
                               disabled={deleteInvite.isPending}
                               className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
@@ -378,8 +459,48 @@ export default function TeamPage() {
         }
       />
 
-      <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+      <Dialog open={isInviteOpen} onOpenChange={handleInviteOpenChange}>
         <DialogContent className="sm:max-w-md">
+          {invitedMember ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-500" />
+                  Team member added
+                </DialogTitle>
+                <DialogDescription>
+                  <span className="font-medium text-foreground">
+                    {invitedMember.email}
+                  </span>{" "}
+                  will get {invitedMember.role} access the first time they sign
+                  in with that email. No invitation email is sent — copy the app
+                  link below and share it with them yourself.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="sm:justify-between gap-2">
+                <CopyAppLinkButton variant="default" />
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setInvitedMember(null)}
+                  >
+                    Add another
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleInviteOpenChange(false)}
+                  >
+                    Done
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
           <DialogHeader>
             <DialogTitle>Add Team Member</DialogTitle>
             <DialogDescription>
@@ -432,6 +553,8 @@ export default function TeamPage() {
               </Button>
             </DialogFooter>
           </form>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
