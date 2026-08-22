@@ -162,7 +162,7 @@ function DemoLoginButtons() {
   };
 
   return (
-    <div className="mt-4 w-[440px] max-w-full rounded-2xl border bg-white p-4 shadow-sm">
+    <div className="mt-4 w-[440px] max-w-full rounded-2xl border bg-card p-4 shadow-sm">
       <p className="mb-3 text-center text-sm font-medium text-muted-foreground">
         Testing? Skip the form:
       </p>
@@ -316,7 +316,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ApiAuthBridge />
         <ClerkQueryClientCacheInvalidator />
-        <Toaster />
+        <Toaster theme="system" />
         <Switch>
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />

@@ -26,6 +26,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { SummaryStrip } from "./summary-strip";
 import { LeadSyncBanner } from "./lead-sync-banner";
 import { FeedbackDialog } from "@/components/feedback-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -163,6 +164,8 @@ export function AppShell({ children }: AppShellProps) {
           {user?.username ? `@${user.username}` : <span className="capitalize">{user?.role}</span>}
         </span>
       </button>
+      <div className="flex items-center gap-0.5 shrink-0">
+        <ThemeToggle />
       <button
         onClick={handleSignOut}
         className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-1 rounded-md"
@@ -170,6 +173,7 @@ export function AppShell({ children }: AppShellProps) {
       >
         <LogOut className="w-4 h-4" />
       </button>
+      </div>
     </div>
   );
 
@@ -215,9 +219,10 @@ export function AppShell({ children }: AppShellProps) {
           </SheetContent>
         </Sheet>
         <Brand />
+        <ThemeToggle className="ml-auto p-2" />
         <button
           onClick={handleSignOut}
-          className="ml-auto text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-2 rounded-md"
+          className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-2 rounded-md"
           title="Sign out"
         >
           <LogOut className="w-4 h-4" />

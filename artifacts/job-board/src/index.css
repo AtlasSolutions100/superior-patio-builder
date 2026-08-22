@@ -120,6 +120,8 @@
 }
 
 @layer base {
+  :root { color-scheme: light; }
+  .dark { color-scheme: dark; }
   * {
     @apply border-border;
   }
