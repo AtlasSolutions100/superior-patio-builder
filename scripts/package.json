@@ -6,7 +6,8 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "purge:demo": "tsx src/purge-demo-data.ts"
+    "purge:demo": "tsx src/purge-demo-data.ts",
+    "seed:demo": "tsx src/seed-demo.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",
