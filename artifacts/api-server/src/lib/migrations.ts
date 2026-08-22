@@ -1,4 +1,4 @@
-import { pool } from "@workspace/db";
+import { pool, DEFAULT_STAGES } from "@workspace/db";
 import { logger } from "./logger";
 
 /**
@@ -49,10 +49,79 @@ export async function runStartupMigrations(): Promise<void> {
         job_id integer REFERENCES jobs(id) ON DELETE SET NULL,
         imported_at timestamptz NOT NULL DEFAULT now()
       );
+
+      -- Admin-editable pipeline stages (see lib/db/src/schema/stages.ts).
+      CREATE TABLE IF NOT EXISTS stages (
+        id serial PRIMARY KEY,
+        key text NOT NULL UNIQUE,
+        label text NOT NULL,
+        pipeline text NOT NULL,
+        position integer NOT NULL,
+        tech_can_move boolean NOT NULL DEFAULT true,
+        is_complete boolean NOT NULL DEFAULT false,
+        archived_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS stages_pipeline_position_idx ON stages(pipeline, position);
     `);
+
+    await seedStages();
     logger.info("Startup migrations applied");
   } catch (err) {
     logger.error({ err }, "Startup migrations failed");
     throw err;
   }
+}
+
+/**
+ * Seed the default stage list the first time a database boots on this
+ * schema, then make sure every stage key referenced by an existing job has
+ * a row (appended to the job pipeline) so no job is ever orphaned.
+ */
+async function seedStages(): Promise<void> {
+  const { rows } = await pool.query<{ count: number }>(
+    "SELECT count(*)::int AS count FROM stages",
+  );
+  if (rows[0].count === 0) {
+    const positions: Record<string, number> = {};
+    const values: string[] = [];
+    const params: unknown[] = [];
+    for (const s of DEFAULT_STAGES) {
+      positions[s.pipeline] = (positions[s.pipeline] ?? 0) + 1;
+      const i = params.length;
+      values.push(
+        `($${i + 1}, $${i + 2}, $${i + 3}, $${i + 4}, $${i + 5}, $${i + 6})`,
+      );
+      params.push(
+        s.key,
+        s.label,
+        s.pipeline,
+        positions[s.pipeline],
+        s.techCanMove ?? true,
+        s.isComplete ?? false,
+      );
+    }
+    await pool.query(
+      `INSERT INTO stages (key, label, pipeline, position, tech_can_move, is_complete)
+       VALUES ${values.join(", ")} ON CONFLICT (key) DO NOTHING`,
+      params,
+    );
+    logger.info({ count: DEFAULT_STAGES.length }, "Seeded default stages");
+  }
+
+  // Converge: any job whose stage key has no row gets one (job pipeline,
+  // label derived from the key) rather than silently vanishing from the board.
+  const { rowCount } = await pool.query(`
+    INSERT INTO stages (key, label, pipeline, position)
+    SELECT DISTINCT j.stage,
+           initcap(replace(j.stage, '_', ' ')),
+           'job',
+           (SELECT COALESCE(max(position), 0) FROM stages WHERE pipeline = 'job')
+             + dense_rank() OVER (ORDER BY j.stage)
+    FROM jobs j
+    WHERE NOT EXISTS (SELECT 1 FROM stages s WHERE s.key = j.stage)
+    ON CONFLICT (key) DO NOTHING
+  `);
+  if (rowCount) logger.warn({ rowCount }, "Created stages for orphaned job stage keys");
 }

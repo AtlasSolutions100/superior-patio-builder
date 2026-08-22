@@ -12,7 +12,7 @@ import {
   Job,
   JobStage,
 } from "@workspace/api-client-react";
-import { STAGE_LABELS, OPERATIONAL_STAGES } from "@/lib/utils";
+import { useStages, type Stages } from "@/hooks/use-stages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -52,8 +52,6 @@ type SortKey =
   | "contractAmount"
   | "estimatedInstallDate"
   | "stage";
-
-const STAGE_ORDER = Object.keys(STAGE_LABELS);
 
 type Filters = {
   search: string;
@@ -117,6 +115,7 @@ function loadPrefs(userId: string): { filters: Filters; sort: Sort } | null {
 
 export default function ListPage() {
   const { data: user } = useGetCurrentUser();
+  const stg = useStages();
   const userId = user?.id ? String(user.id) : null;
   const [filters, setFilters] = React.useState<Filters>({ ...DEFAULT_FILTERS });
   const [sort, setSort] = React.useState<Sort>({ ...DEFAULT_SORT });
@@ -175,12 +174,11 @@ export default function ListPage() {
 
   const { data: jobs, isLoading, error, refetch, isRefetching } = useListJobs({
     search: debouncedFilters.search || undefined,
-    // Ignore a stale saved pre-sold stage filter — those stages no longer
+    // Ignore a stale saved sales-stage filter — those stages no longer
     // exist on the Job List (leads live on the Sales Pipeline).
     stage:
       debouncedFilters.stage &&
-      (showArchived ||
-        (OPERATIONAL_STAGES as readonly string[]).includes(debouncedFilters.stage))
+      (showArchived || stg.isJobStage(debouncedFilters.stage))
         ? (debouncedFilters.stage as any)
         : undefined,
     city: debouncedFilters.city || undefined,
@@ -197,9 +195,7 @@ export default function ListPage() {
     // archived leads stay reachable and restorable.
     const visible = showArchived
       ? jobs
-      : jobs.filter((j) =>
-          (OPERATIONAL_STAGES as readonly string[]).includes(j.stage),
-        );
+      : jobs.filter((j) => stg.isJobStage(j.stage));
     const dir = sort.dir === "asc" ? 1 : -1;
     const cmp = (a: Job, b: Job): number => {
       switch (sort.key) {
@@ -219,8 +215,10 @@ export default function ListPage() {
           if (bv == null) return -1;
           return av.localeCompare(bv) * dir;
         }
-        case "stage":
-          return (STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage)) * dir;
+        case "stage": {
+          const order = stg.stages.map((st) => st.key);
+          return (order.indexOf(a.stage) - order.indexOf(b.stage)) * dir;
+        }
         default: {
           const av = (a[sort.key] || "") as string;
           const bv = (b[sort.key] || "") as string;
@@ -229,7 +227,7 @@ export default function ListPage() {
       }
     };
     return [...visible].sort(cmp);
-  }, [jobs, sort, showArchived]);
+  }, [jobs, sort, showArchived, stg]);
 
   const toggleSort = (key: SortKey) => {
     setSort((s) =>
@@ -326,12 +324,9 @@ export default function ListPage() {
             onChange={(e) => setFilters((f) => ({ ...f, stage: e.target.value }))}
           >
             <option value="">All Stages</option>
-            {(showArchived
-              ? Object.keys(STAGE_LABELS)
-              : (OPERATIONAL_STAGES as readonly string[])
-            ).map((val) => (
-              <option key={val} value={val}>
-                {STAGE_LABELS[val] ?? val}
+            {(showArchived ? stg.stages : stg.jobStages).map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
               </option>
             ))}
           </select>
@@ -457,7 +452,7 @@ export default function ListPage() {
               </tr>
             ) : (
               sortedJobs?.map((job) => (
-                <ListRow key={job.id} job={job} role={user?.role} archivedView={showArchived} />
+                <ListRow key={job.id} job={job} role={user?.role} archivedView={showArchived} stg={stg} />
               ))
             )}
           </tbody>
@@ -502,7 +497,7 @@ function SortableHeader({
   );
 }
 
-function ListRow({ job, role, archivedView }: { job: Job; role?: string; archivedView?: boolean }) {
+function ListRow({ job, role, archivedView, stg }: { job: Job; role?: string; archivedView?: boolean; stg: Stages }) {
   const updateJob = useUpdateJob();
   const archiveJob = useArchiveJob();
   const unarchiveJob = useUnarchiveJob();
@@ -545,7 +540,7 @@ function ListRow({ job, role, archivedView }: { job: Job; role?: string; archive
       {
         onSuccess: () => {
           invalidateJobs();
-          toast.success(`"${job.customerName}" restored to ${STAGE_LABELS[job.stage] || job.stage}`);
+          toast.success(`"${job.customerName}" restored to ${stg.labelOf(job.stage)}`);
         },
         onError: (err: any) => toast.error(err?.data?.error || "Failed to restore job"),
       },
@@ -580,9 +575,7 @@ function ListRow({ job, role, archivedView }: { job: Job; role?: string; archive
   const isLate =
     job.estimatedInstallDate &&
     new Date(job.estimatedInstallDate) < new Date() &&
-    job.stage !== "installed" &&
-    job.stage !== "post_install_follow_up" &&
-    job.stage !== "review_asked";
+    !stg.isComplete(job.stage);
 
   return (
     <>
@@ -610,23 +603,27 @@ function ListRow({ job, role, archivedView }: { job: Job; role?: string; archive
                 <button
                   type="button"
                   className="max-w-full inline-flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary/20 transition-colors px-2 py-0.5 rounded text-xs font-semibold"
-                  title={STAGE_LABELS[job.stage] || job.stage}
+                  title={stg.labelOf(job.stage)}
                 >
-                  <span className="truncate">{STAGE_LABELS[job.stage] || job.stage}</span>
+                  <span className="truncate">{stg.labelOf(job.stage)}</span>
                   <ChevronDown className="w-3 h-3 shrink-0" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto">
                 <DropdownMenuLabel>Move to stage</DropdownMenuLabel>
-                {Object.entries(STAGE_LABELS).map(([stageValue, label]) => {
-                  if (stageValue === job.stage) return null;
-                  if (role === "tech" && stageValue !== "installed") return null;
+                {stg.stages.map((stage) => {
+                  if (stage.key === job.stage) return null;
+                  if (
+                    role === "tech" &&
+                    (stage.pipeline !== "job" || !stage.techCanMove)
+                  )
+                    return null;
                   return (
                     <DropdownMenuItem
-                      key={stageValue}
-                      onClick={() => setMoveStageIntent(stageValue as JobStage)}
+                      key={stage.key}
+                      onClick={() => setMoveStageIntent(stage.key)}
                     >
-                      {label}
+                      {stage.label}
                     </DropdownMenuItem>
                   );
                 })}
@@ -635,9 +632,9 @@ function ListRow({ job, role, archivedView }: { job: Job; role?: string; archive
           ) : (
             <span
               className="inline-block max-w-full truncate bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-semibold"
-              title={STAGE_LABELS[job.stage] || job.stage}
+              title={stg.labelOf(job.stage)}
             >
-              {STAGE_LABELS[job.stage] || job.stage}
+              {stg.labelOf(job.stage)}
             </span>
           )}
         </td>

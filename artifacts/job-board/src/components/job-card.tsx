@@ -1,5 +1,6 @@
 import * as React from "react";
-import { formatDate, STAGE_LABELS, STAGE_GROUPS, PIPELINE_STAGES } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { useStages } from "@/hooks/use-stages";
 import { ChevronDown, CheckCircle2, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -16,11 +17,6 @@ import { Job, JobStage, useGetCurrentUser } from "@workspace/api-client-react";
 import { JobDialog } from "./job-dialog";
 import { MoveStageDialog } from "./move-stage-dialog";
 import { toTelHref, formatPhoneInput } from "@/lib/phone";
-
-const MOVE_GROUPS: { label: string; stages: string[] }[] = [
-  { label: "Pipeline", stages: [...PIPELINE_STAGES] },
-  ...STAGE_GROUPS.map(g => ({ label: g.label, stages: g.stages })),
-];
 
 export default function JobCard({
   job,
@@ -44,6 +40,7 @@ export default function JobCard({
   onToggleSelect?: () => void;
 }) {
   const { data: user } = useGetCurrentUser();
+  const stg = useStages();
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [moveStageIntent, setMoveStageIntent] = React.useState<JobStage | null>(null);
 
@@ -53,15 +50,31 @@ export default function JobCard({
   const canTechEdit = user?.role === "tech" || canEdit;
   const showMoveMenu = variant === "lead" ? canEdit : canTechEdit;
 
-  // On the pipeline, a Sold lead is converted — it now lives on the Job Board.
-  const isConverted = variant === "lead" && job.stage === "sold";
+  // On the pipeline, a lead that reached the job pipeline is converted — it
+  // now lives on the Job Board.
+  const isConverted = variant === "lead" && stg.isJobStage(job.stage);
 
   const isLate =
     job.estimatedInstallDate &&
     new Date(job.estimatedInstallDate) < new Date() &&
-    job.stage !== "installed" &&
-    job.stage !== "post_install_follow_up" &&
-    job.stage !== "review_asked";
+    !stg.isComplete(job.stage);
+
+  // Move menu: both pipelines for admins; techs only move within the job
+  // pipeline, into stages flagged for them (Settings › "Techs can move here").
+  const moveGroups = [
+    { label: "Sales Pipeline", stages: stg.salesStages },
+    { label: "Job Board", stages: stg.jobStages },
+  ]
+    .map(group => ({
+      label: group.label,
+      stages: group.stages.filter(stage => {
+        if (stage.key === job.stage) return false;
+        if (user?.role === "tech" && (stage.pipeline !== "job" || !stage.techCanMove))
+          return false;
+        return true;
+      }),
+    }))
+    .filter(group => group.stages.length > 0);
 
   return (
     <>
@@ -111,11 +124,11 @@ export default function JobCard({
           {isConverted ? (
             <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-500 mb-1">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Sold
+              {stg.labelOf(job.stage)}
             </div>
           ) : (
             <div className="text-[11px] text-muted-foreground/80 mb-1 truncate">
-              {STAGE_LABELS[job.stage] || job.stage}
+              {stg.labelOf(job.stage)}
             </div>
           )}
           <h4
@@ -185,7 +198,7 @@ export default function JobCard({
           </Link>
         )}
 
-        {showMoveMenu && (
+        {showMoveMenu && moveGroups.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -198,27 +211,19 @@ export default function JobCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-60 max-h-80 overflow-y-auto">
-              {MOVE_GROUPS.map((group, gi) => {
-                const items = group.stages.filter(stage => {
-                  if (stage === job.stage) return false;
-                  if (user?.role === "tech" && stage !== "installed") return false;
-                  return true;
-                });
-                if (items.length === 0) return null;
-                return (
-                  <React.Fragment key={group.label}>
-                    {gi > 0 && <DropdownMenuSeparator />}
-                    <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
-                      {group.label}
-                    </DropdownMenuLabel>
-                    {items.map(stage => (
-                      <DropdownMenuItem key={stage} onClick={() => setMoveStageIntent(stage as JobStage)}>
-                        {STAGE_LABELS[stage] || stage}
-                      </DropdownMenuItem>
-                    ))}
-                  </React.Fragment>
-                );
-              })}
+              {moveGroups.map((group, gi) => (
+                <React.Fragment key={group.label}>
+                  {gi > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
+                    {group.label}
+                  </DropdownMenuLabel>
+                  {group.stages.map(stage => (
+                    <DropdownMenuItem key={stage.key} onClick={() => setMoveStageIntent(stage.key)}>
+                      {stage.label}
+                    </DropdownMenuItem>
+                  ))}
+                </React.Fragment>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

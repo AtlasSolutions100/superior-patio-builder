@@ -38,6 +38,11 @@ import type {
   LeadSyncStatus,
   ListJobsParams,
   ProfileUpdate,
+  Stage,
+  StageInput,
+  StageRemove,
+  StageReorder,
+  StageUpdate,
   TeamInvite,
   TeamInviteInput,
   TeamInviteUpdate,
@@ -1918,6 +1923,369 @@ export function useGetBoardSummary<TData = Awaited<ReturnType<typeof getBoardSum
 
 
 
+
+export const getListStagesUrl = () => {
+
+
+
+
+  return `/api/stages`
+}
+
+/**
+ * @summary All active stages, sales pipeline first then job pipeline, ordered by position
+ */
+export const listStages = async ( options?: Parameters<typeof customFetch>[1]): Promise<Stage[]> => {
+
+  return customFetch<Stage[]>(getListStagesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListStagesQueryKey = () => {
+    return [
+    `/api/stages`
+    ] as const;
+    }
+
+
+export const getListStagesQueryOptions = <TData = Awaited<ReturnType<typeof listStages>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listStages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListStagesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listStages>>> = ({ signal }) => listStages({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listStages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListStagesQueryResult = NonNullable<Awaited<ReturnType<typeof listStages>>>
+export type ListStagesQueryError = ErrorType<void>
+
+
+/**
+ * @summary All active stages, sales pipeline first then job pipeline, ordered by position
+ */
+
+export function useListStages<TData = Awaited<ReturnType<typeof listStages>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listStages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListStagesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateStageUrl = () => {
+
+
+
+
+  return `/api/stages`
+}
+
+/**
+ * @summary Add a stage to a pipeline (full-access only). Appended last unless afterKey is given.
+ */
+export const createStage = async (stageInput: StageInput, options?: Parameters<typeof customFetch>[1]): Promise<Stage> => {
+
+  return customFetch<Stage>(getCreateStageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(stageInput)
+  }
+);}
+
+
+
+
+
+export const getCreateStageMutationOptions = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStage>>, TError,{data: BodyType<StageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStage>>, TError,{data: BodyType<StageInput>}, TContext> => {
+
+const mutationKey = ['createStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStage>>, {data: BodyType<StageInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createStage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStageMutationResult = NonNullable<Awaited<ReturnType<typeof createStage>>>
+    export type CreateStageMutationBody = BodyType<StageInput>
+    export type CreateStageMutationError = ErrorType<ErrorMessage | void>
+
+    /**
+ * @summary Add a stage to a pipeline (full-access only). Appended last unless afterKey is given.
+ */
+export const useCreateStage = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStage>>, TError,{data: BodyType<StageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createStage>>,
+        TError,
+        {data: BodyType<StageInput>},
+        TContext
+      > => {
+      return useMutation(getCreateStageMutationOptions(options));
+    }
+
+export const getReorderStagesUrl = () => {
+
+
+
+
+  return `/api/stages/reorder`
+}
+
+/**
+ * @summary Set the order of one pipeline's stages (full-access only). keys must list every active stage in that pipeline exactly once.
+ */
+export const reorderStages = async (stageReorder: StageReorder, options?: Parameters<typeof customFetch>[1]): Promise<Stage[]> => {
+
+  return customFetch<Stage[]>(getReorderStagesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(stageReorder)
+  }
+);}
+
+
+
+
+
+export const getReorderStagesMutationOptions = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderStages>>, TError,{data: BodyType<StageReorder>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reorderStages>>, TError,{data: BodyType<StageReorder>}, TContext> => {
+
+const mutationKey = ['reorderStages'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reorderStages>>, {data: BodyType<StageReorder>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  reorderStages(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReorderStagesMutationResult = NonNullable<Awaited<ReturnType<typeof reorderStages>>>
+    export type ReorderStagesMutationBody = BodyType<StageReorder>
+    export type ReorderStagesMutationError = ErrorType<ErrorMessage | void>
+
+    /**
+ * @summary Set the order of one pipeline's stages (full-access only). keys must list every active stage in that pipeline exactly once.
+ */
+export const useReorderStages = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderStages>>, TError,{data: BodyType<StageReorder>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reorderStages>>,
+        TError,
+        {data: BodyType<StageReorder>},
+        TContext
+      > => {
+      return useMutation(getReorderStagesMutationOptions(options));
+    }
+
+export const getUpdateStageUrl = (id: number,) => {
+
+
+
+
+  return `/api/stages/${id}`
+}
+
+/**
+ * @summary Rename a stage or change its flags (full-access only)
+ */
+export const updateStage = async (id: number,
+    stageUpdate: StageUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Stage> => {
+
+  return customFetch<Stage>(getUpdateStageUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(stageUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateStageMutationOptions = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStage>>, TError,{id: number;data: BodyType<StageUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateStage>>, TError,{id: number;data: BodyType<StageUpdate>}, TContext> => {
+
+const mutationKey = ['updateStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateStage>>, {id: number;data: BodyType<StageUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateStage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateStageMutationResult = NonNullable<Awaited<ReturnType<typeof updateStage>>>
+    export type UpdateStageMutationBody = BodyType<StageUpdate>
+    export type UpdateStageMutationError = ErrorType<ErrorMessage | void>
+
+    /**
+ * @summary Rename a stage or change its flags (full-access only)
+ */
+export const useUpdateStage = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStage>>, TError,{id: number;data: BodyType<StageUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateStage>>,
+        TError,
+        {id: number;data: BodyType<StageUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateStageMutationOptions(options));
+    }
+
+export const getRemoveStageUrl = (id: number,) => {
+
+
+
+
+  return `/api/stages/${id}/remove`
+}
+
+/**
+ * @summary Remove a stage (full-access only). If any jobs are in it, moveTo (a stage key in the same pipeline) is required and the jobs are moved first, in the same transaction.
+ */
+export const removeStage = async (id: number,
+    stageRemove?: StageRemove, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRemoveStageUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(stageRemove)
+  }
+);}
+
+
+
+
+
+export const getRemoveStageMutationOptions = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeStage>>, TError,{id: number;data?: BodyType<StageRemove>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeStage>>, TError,{id: number;data?: BodyType<StageRemove>}, TContext> => {
+
+const mutationKey = ['removeStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeStage>>, {id: number;data?: BodyType<StageRemove>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  removeStage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveStageMutationResult = NonNullable<Awaited<ReturnType<typeof removeStage>>>
+    export type RemoveStageMutationBody = BodyType<StageRemove> | undefined
+    export type RemoveStageMutationError = ErrorType<ErrorMessage | void>
+
+    /**
+ * @summary Remove a stage (full-access only). If any jobs are in it, moveTo (a stage key in the same pipeline) is required and the jobs are moved first, in the same transaction.
+ */
+export const useRemoveStage = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeStage>>, TError,{id: number;data?: BodyType<StageRemove>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeStage>>,
+        TError,
+        {id: number;data?: BodyType<StageRemove>},
+        TContext
+      > => {
+      return useMutation(getRemoveStageMutationOptions(options));
+    }
 
 export const getListFeedbackUrl = () => {
 

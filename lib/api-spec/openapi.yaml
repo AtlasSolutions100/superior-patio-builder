@@ -16,6 +16,8 @@ tags:
     description: User and role operations
   - name: feedback
     description: Team feedback notes
+  - name: stages
+    description: Admin-editable pipeline stages
 paths:
   /healthz:
     get:
@@ -718,6 +720,135 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BoardSummary"
+  /stages:
+    get:
+      operationId: listStages
+      tags: [stages]
+      summary: All active stages, sales pipeline first then job pipeline, ordered by position
+      responses:
+        "200":
+          description: Stage list with active job counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Stage"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createStage
+      tags: [stages]
+      summary: Add a stage to a pipeline (full-access only). Appended last unless afterKey is given.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageInput"
+      responses:
+        "201":
+          description: Created stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stage"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Requires full access
+  /stages/reorder:
+    post:
+      operationId: reorderStages
+      tags: [stages]
+      summary: Set the order of one pipeline's stages (full-access only). keys must list every active stage in that pipeline exactly once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageReorder"
+      responses:
+        "200":
+          description: Reordered stage list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Stage"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Requires full access
+  /stages/{id}:
+    patch:
+      operationId: updateStage
+      tags: [stages]
+      summary: Rename a stage or change its flags (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageUpdate"
+      responses:
+        "200":
+          description: Updated stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stage"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Stage not found
+  /stages/{id}/remove:
+    post:
+      operationId: removeStage
+      tags: [stages]
+      summary: Remove a stage (full-access only). If any jobs are in it, moveTo (a stage key in the same pipeline) is required and the jobs are moved first, in the same transaction.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageRemove"
+      responses:
+        "204":
+          description: Stage removed
+        "400":
+          description: Jobs still in this stage and no valid moveTo given, or last stage in pipeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Stage not found
   /feedback:
     get:
       operationId: listFeedback
@@ -939,27 +1070,82 @@ components:
           type: ["string", "null"]
           maxLength: 24
       required: [role]
+    StagePipeline:
+      type: string
+      enum: [sales, job]
+      description: sales = leads (Sales Pipeline); job = post-sale work (Job Board). Moving into the job pipeline requires an Estimated Install Date.
+    Stage:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+          description: Stable slug stored in jobs.stage
+        label:
+          type: string
+        pipeline:
+          $ref: "#/components/schemas/StagePipeline"
+        position:
+          type: integer
+        techCanMove:
+          type: boolean
+          description: Install techs may move jobs into this stage
+        isComplete:
+          type: boolean
+          description: Work is finished — excluded from late / upcoming-install logic
+        jobCount:
+          type: integer
+          description: Active (non-archived) jobs currently in this stage
+      required: [id, key, label, pipeline, position, techCanMove, isComplete, jobCount]
+    StageInput:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 60
+        pipeline:
+          $ref: "#/components/schemas/StagePipeline"
+        techCanMove:
+          type: boolean
+        isComplete:
+          type: boolean
+        afterKey:
+          type: ["string", "null"]
+          description: Insert directly after this stage key; omit to append at the end
+      required: [label, pipeline]
+    StageUpdate:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 60
+        techCanMove:
+          type: boolean
+        isComplete:
+          type: boolean
+    StageRemove:
+      type: object
+      properties:
+        moveTo:
+          type: ["string", "null"]
+          description: Stage key (same pipeline) to move this stage's jobs into before removal
+    StageReorder:
+      type: object
+      properties:
+        pipeline:
+          $ref: "#/components/schemas/StagePipeline"
+        keys:
+          type: array
+          items:
+            type: string
+          minItems: 1
+      required: [pipeline, keys]
     JobStage:
       type: string
-      enum:
-        - new_lead
-        - scheduled
-        - bid_given
-        - sold
-        - invoiced_with_quickbooks
-        - deposit_paid
-        - pre_order_site_visit
-        - material_ordered
-        - non_standard_material_ordered
-        - permit_applied
-        - footings_needed
-        - other_prep_work
-        - material_received
-        - ready_to_install
-        - installed
-        - post_install_follow_up
-        - review_asked
-      description: Exact operational stages in order
+      description: Key of a row in the stages table (admin-editable; see /stages). Validated by the API on every write.
     Job:
       type: object
       properties:

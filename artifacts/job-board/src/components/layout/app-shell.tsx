@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "wouter";
-import { KanbanSquare, Table2, Users, LogOut, Loader2, TrendingUp, MessageSquare } from "lucide-react";
+import { KanbanSquare, Table2, Users, LogOut, Loader2, TrendingUp, MessageSquare, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClerk } from "@clerk/react";
 import { toast } from "sonner";
@@ -52,6 +52,7 @@ export function AppShell({ children }: AppShellProps) {
     { href: "/list", label: "Job List", icon: Table2 },
     { href: "/team", label: "Team Access", icon: Users, adminOnly: true },
     { href: "/feedback", label: "Feedback Inbox", icon: MessageSquare, adminOnly: true },
+    { href: "/settings", label: "Settings", icon: SlidersHorizontal, adminOnly: true },
   ];
 
   const handleSignOut = () => {

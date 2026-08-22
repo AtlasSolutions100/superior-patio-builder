@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, jobsTable, jobNotesTable, leadImportsTable } from "@workspace/db";
 import { logger } from "./logger";
+import { entryStage } from "./stages";
 
 /**
  * One-way lead import from Justin's Google Sheet (publicly readable CSV
@@ -192,6 +193,9 @@ export async function syncLeadsFromSheet(): Promise<number> {
     const csv = await res.text();
     const leads = mapRows(parseCsv(csv));
 
+    const entry = await entryStage("sales");
+    if (!entry) throw new Error("The sales pipeline has no stages — add one in Settings");
+
     const existing = await db
       .select({ dedupeKey: leadImportsTable.dedupeKey })
       .from(leadImportsTable);
@@ -216,7 +220,7 @@ export async function syncLeadsFromSheet(): Promise<number> {
             address: lead.address,
             city: lead.city,
             source: lead.source,
-            stage: "new_lead",
+            stage: entry.key,
             lastNote: lead.note,
           })
           .returning();

@@ -3,25 +3,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { STAGE_LABELS, OPERATIONAL_STAGES } from "@/lib/utils";
+import { useStages } from "@/hooks/use-stages";
 import { toast } from "sonner";
 import { queryClient } from "@/lib/query-client";
 import { Job, JobStage, JobStageMove, useMoveJobStage, getListJobsQueryKey, getGetBoardSummaryQueryKey } from "@workspace/api-client-react";
 
 export function MoveStageDialog({ job, targetStage, open, onOpenChange }: { job: Job, targetStage: JobStage, open: boolean, onOpenChange: (open: boolean) => void }) {
   const moveStage = useMoveJobStage();
+  const stg = useStages();
   const [date, setDate] = React.useState(job.estimatedInstallDate || "");
 
-  // Every stage from Sold onward requires an install date (same rule as the
-  // server) — not just Sold itself, so the dialog collects the date up front
-  // instead of surfacing a server error after the fact.
-  const requiresDate =
-    (OPERATIONAL_STAGES as readonly string[]).includes(targetStage) &&
-    !job.estimatedInstallDate;
+  const targetLabel = stg.labelOf(targetStage);
 
-  // If the dialog opens and we don't actually require a date, 
-  // we could just execute immediately, but having a confirmation step is nice 
-  // to prevent accidental clicks.
+  // Every job-pipeline stage requires an install date (same rule as the
+  // server) — the dialog collects the date up front instead of surfacing a
+  // server error after the fact.
+  const requiresDate = stg.isJobStage(targetStage) && !job.estimatedInstallDate;
 
   const handleConfirm = () => {
     if (requiresDate && !date) {
@@ -39,7 +36,7 @@ export function MoveStageDialog({ job, targetStage, open, onOpenChange }: { job:
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetBoardSummaryQueryKey() });
-        toast.success(`Moved to ${STAGE_LABELS[targetStage]}`);
+        toast.success(`Moved to ${targetLabel}`);
         onOpenChange(false);
       },
       onError: (err: any) => {
@@ -52,25 +49,24 @@ export function MoveStageDialog({ job, targetStage, open, onOpenChange }: { job:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Move to {STAGE_LABELS[targetStage]}</DialogTitle>
+          <DialogTitle>Move to {targetLabel}</DialogTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            You are moving <span className="font-semibold text-foreground">{job.customerName}</span> to the {STAGE_LABELS[targetStage]} stage.
+            You are moving <span className="font-semibold text-foreground">{job.customerName}</span> to the {targetLabel} stage.
           </p>
         </DialogHeader>
 
         {requiresDate && (
           <div className="space-y-4 my-4 bg-accent/30 p-4 rounded-md border border-primary/20">
             <p className="text-sm font-medium text-primary">
-              Moving a job to "{STAGE_LABELS[targetStage] ?? targetStage}" requires an
-              estimated install date.
+              Moving a job to "{targetLabel}" requires an estimated install date.
             </p>
             <div className="space-y-2">
               <Label htmlFor="installDateConfirm">Estimated Install Date <span className="text-destructive">*</span></Label>
-              <Input 
-                id="installDateConfirm" 
-                type="date" 
-                value={date} 
-                onChange={e => setDate(e.target.value)} 
+              <Input
+                id="installDateConfirm"
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
               />
             </div>
           </div>

@@ -7,27 +7,6 @@
  */
 
 /**
- * Exact operational stages in order
+ * Key of a row in the stages table (admin-editable; see /stages). Validated by the API on every write.
  */
-export type JobStage = typeof JobStage[keyof typeof JobStage];
-
-
-export const JobStage = {
-  new_lead: 'new_lead',
-  scheduled: 'scheduled',
-  bid_given: 'bid_given',
-  sold: 'sold',
-  invoiced_with_quickbooks: 'invoiced_with_quickbooks',
-  deposit_paid: 'deposit_paid',
-  pre_order_site_visit: 'pre_order_site_visit',
-  material_ordered: 'material_ordered',
-  non_standard_material_ordered: 'non_standard_material_ordered',
-  permit_applied: 'permit_applied',
-  footings_needed: 'footings_needed',
-  other_prep_work: 'other_prep_work',
-  material_received: 'material_received',
-  ready_to_install: 'ready_to_install',
-  installed: 'installed',
-  post_install_follow_up: 'post_install_follow_up',
-  review_asked: 'review_asked',
-} as const;
+export type JobStage = string;

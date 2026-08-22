@@ -1,25 +1,33 @@
 import * as React from "react";
 import { useListJobs, useGetCurrentUser, Job } from "@workspace/api-client-react";
-import { STAGE_GROUPS, OPERATIONAL_STAGES } from "@/lib/utils";
+import { useStages } from "@/hooks/use-stages";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, AlertTriangle, RefreshCw } from "lucide-react";
 import { JobDialog } from "@/components/job-dialog";
-import { KanbanBoard } from "@/components/kanban-board";
+import { KanbanBoard, BoardGroup } from "@/components/kanban-board";
 
 export default function BoardPage() {
   const { data: user } = useGetCurrentUser();
   const { data: jobs, isLoading, error, refetch, isRefetching } = useListJobs();
+  const stg = useStages();
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
 
-  // The main board is operational only — pre-Sold leads live on the
-  // Sales Pipeline page.
-  const boardJobs = React.useMemo<Job[]>(
+  // One column per job-pipeline stage, in the order set on the Settings page.
+  const groups = React.useMemo<BoardGroup[]>(
     () =>
-      (jobs || []).filter(job =>
-        (OPERATIONAL_STAGES as readonly string[]).includes(job.stage)
-      ),
-    [jobs]
+      stg.jobStages.map(stage => ({
+        key: stage.key,
+        label: stage.label,
+        stages: [stage.key],
+      })),
+    [stg.jobStages]
+  );
+
+  // The main board is operational only — leads live on the Sales Pipeline page.
+  const boardJobs = React.useMemo<Job[]>(
+    () => (jobs || []).filter(job => stg.isJobStage(job.stage)),
+    [jobs, stg]
   );
 
   if (error && !jobs) {
@@ -44,7 +52,7 @@ export default function BoardPage() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="flex-none px-6 py-4 flex items-center justify-between gap-4 shrink-0">
+      <div className="flex-none px-4 md:px-6 py-4 flex items-center justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">Job Board</h1>
@@ -71,7 +79,7 @@ export default function BoardPage() {
       </div>
 
       {error && jobs && (
-        <div className="flex-none mx-6 mb-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+        <div className="flex-none mx-4 md:mx-6 mb-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
           <span>Couldn't refresh jobs — the board may be out of date.</span>
           <button
@@ -91,8 +99,8 @@ export default function BoardPage() {
 
       <KanbanBoard
         jobs={boardJobs}
-        groups={STAGE_GROUPS}
-        isLoading={isLoading}
+        groups={groups}
+        isLoading={isLoading || stg.isLoading}
         emptyLabel="No jobs in this stage"
       />
 

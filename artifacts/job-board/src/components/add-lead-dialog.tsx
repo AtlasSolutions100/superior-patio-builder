@@ -18,6 +18,7 @@ import {
   getGetBoardSummaryQueryKey,
   JobInput,
 } from "@workspace/api-client-react";
+import { useStages } from "@/hooks/use-stages";
 
 const LEAD_SOURCES = ["Manual", "Phone", "Website", "Manufacturer", "Other"];
 
@@ -34,6 +35,7 @@ export function AddLeadDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const createJob = useCreateJob();
+  const stg = useStages();
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [city, setCity] = React.useState("");
@@ -70,14 +72,16 @@ export function AddLeadDialog({
           address: address.trim() || undefined,
           source,
           lastNote: note.trim() || undefined,
-          stage: "new_lead",
+          stage: stg.entrySalesStage?.key,
         } as JobInput,
       },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetBoardSummaryQueryKey() });
-          toast.success(`Lead added — ${trimmedName} is in New Lead`);
+          toast.success(
+            `Lead added — ${trimmedName} is in ${stg.entrySalesStage?.label ?? "the pipeline"}`,
+          );
           onOpenChange(false);
         },
         onError: (err: any) => {
@@ -95,7 +99,7 @@ export function AddLeadDialog({
           <DialogTitle>Add Lead</DialogTitle>
           <p className="text-sm text-muted-foreground mt-2">
             Quickly jot down a lead from a call, text, or referral. It lands in
-            the New Lead column.
+            the {stg.entrySalesStage?.label ?? "first pipeline"} column.
           </p>
         </DialogHeader>
 

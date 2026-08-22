@@ -170,7 +170,7 @@ export const DeleteInviteResponse = zod.void()
  * @summary List jobs with optional filters, sorted by estimated install date ascending
  */
 export const ListJobsQueryParams = zod.object({
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).optional(),
+  "stage": zod.coerce.string().optional(),
   "city": zod.coerce.string().optional(),
   "coverType": zod.coerce.string().optional(),
   "dateFrom": zod.coerce.string().optional().describe('Filter by estimated install date on or after (YYYY-MM-DD)'),
@@ -189,7 +189,7 @@ export const ListJobsResponseItem = zod.object({
   "contractAmount": zod.number().nullable(),
   "source": zod.string().nullable(),
   "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().nullable(),
   "invoicedWithQb": zod.boolean(),
   "depositPaid": zod.boolean(),
@@ -218,7 +218,7 @@ export const CreateJobBody = zod.object({
   "contractAmount": zod.number().optional(),
   "source": zod.string().optional(),
   "estimatedInstallDate": zod.string().nullish(),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).optional().describe('Exact operational stages in order'),
+  "stage": zod.string().optional().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().optional(),
   "invoicedWithQb": zod.boolean().optional(),
   "depositPaid": zod.boolean().optional(),
@@ -236,7 +236,7 @@ export const CreateJobResponse = zod.object({
   "contractAmount": zod.number().nullable(),
   "source": zod.string().nullable(),
   "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().nullable(),
   "invoicedWithQb": zod.boolean(),
   "depositPaid": zod.boolean(),
@@ -283,7 +283,7 @@ export const GetJobResponse = zod.object({
   "contractAmount": zod.number().nullable(),
   "source": zod.string().nullable(),
   "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().nullable(),
   "invoicedWithQb": zod.boolean(),
   "depositPaid": zod.boolean(),
@@ -332,7 +332,7 @@ export const UpdateJobResponse = zod.object({
   "contractAmount": zod.number().nullable(),
   "source": zod.string().nullable(),
   "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().nullable(),
   "invoicedWithQb": zod.boolean(),
   "depositPaid": zod.boolean(),
@@ -363,7 +363,7 @@ export const MoveJobStageParams = zod.object({
 })
 
 export const MoveJobStageBody = zod.object({
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "estimatedInstallDate": zod.string().nullish().describe('Required when moving to sold if the job does not already have one')
 })
 
@@ -377,7 +377,7 @@ export const MoveJobStageResponse = zod.object({
   "contractAmount": zod.number().nullable(),
   "source": zod.string().nullable(),
   "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().nullable(),
   "invoicedWithQb": zod.boolean(),
   "depositPaid": zod.boolean(),
@@ -407,7 +407,7 @@ export const ArchiveJobResponse = zod.object({
   "contractAmount": zod.number().nullable(),
   "source": zod.string().nullable(),
   "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().nullable(),
   "invoicedWithQb": zod.boolean(),
   "depositPaid": zod.boolean(),
@@ -437,7 +437,7 @@ export const UnarchiveJobResponse = zod.object({
   "contractAmount": zod.number().nullable(),
   "source": zod.string().nullable(),
   "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().nullable(),
   "invoicedWithQb": zod.boolean(),
   "depositPaid": zod.boolean(),
@@ -527,7 +527,7 @@ export const GetBoardSummaryResponse = zod.object({
   "totalContractValue": zod.number(),
   "installsNext14Days": zod.int(),
   "byStage": zod.array(zod.object({
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "count": zod.int(),
   "contractTotal": zod.number()
 })),
@@ -541,7 +541,7 @@ export const GetBoardSummaryResponse = zod.object({
   "contractAmount": zod.number().nullable(),
   "source": zod.string().nullable(),
   "estimatedInstallDate": zod.string().nullable().describe('YYYY-MM-DD. Required once a job is Sold or beyond.'),
-  "stage": zod.enum(['new_lead', 'scheduled', 'bid_given', 'sold', 'invoiced_with_quickbooks', 'deposit_paid', 'pre_order_site_visit', 'material_ordered', 'non_standard_material_ordered', 'permit_applied', 'footings_needed', 'other_prep_work', 'material_received', 'ready_to_install', 'installed', 'post_install_follow_up', 'review_asked']).describe('Exact operational stages in order'),
+  "stage": zod.string().describe('Key of a row in the stages table (admin-editable; see \/stages). Validated by the API on every write.'),
   "lastNote": zod.string().nullable(),
   "invoicedWithQb": zod.boolean(),
   "depositPaid": zod.boolean(),
@@ -553,6 +553,116 @@ export const GetBoardSummaryResponse = zod.object({
   "updatedAt": zod.string()
 })).describe('Next 5 jobs by soonest estimated install date (not yet installed)')
 })
+
+
+/**
+ * @summary All active stages, sales pipeline first then job pipeline, ordered by position
+ */
+export const ListStagesResponseItem = zod.object({
+  "id": zod.int(),
+  "key": zod.string().describe('Stable slug stored in jobs.stage'),
+  "label": zod.string(),
+  "pipeline": zod.enum(['sales', 'job']).describe('sales = leads (Sales Pipeline); job = post-sale work (Job Board). Moving into the job pipeline requires an Estimated Install Date.'),
+  "position": zod.int(),
+  "techCanMove": zod.boolean().describe('Install techs may move jobs into this stage'),
+  "isComplete": zod.boolean().describe('Work is finished — excluded from late \/ upcoming-install logic'),
+  "jobCount": zod.int().describe('Active (non-archived) jobs currently in this stage')
+})
+export const ListStagesResponse = zod.array(ListStagesResponseItem)
+
+
+/**
+ * @summary Add a stage to a pipeline (full-access only). Appended last unless afterKey is given.
+ */
+export const createStageBodyLabelMax = 60;
+
+
+
+export const CreateStageBody = zod.object({
+  "label": zod.string().min(1).max(createStageBodyLabelMax),
+  "pipeline": zod.enum(['sales', 'job']).describe('sales = leads (Sales Pipeline); job = post-sale work (Job Board). Moving into the job pipeline requires an Estimated Install Date.'),
+  "techCanMove": zod.boolean().optional(),
+  "isComplete": zod.boolean().optional(),
+  "afterKey": zod.string().nullish().describe('Insert directly after this stage key; omit to append at the end')
+})
+
+export const CreateStageResponse = zod.object({
+  "id": zod.int(),
+  "key": zod.string().describe('Stable slug stored in jobs.stage'),
+  "label": zod.string(),
+  "pipeline": zod.enum(['sales', 'job']).describe('sales = leads (Sales Pipeline); job = post-sale work (Job Board). Moving into the job pipeline requires an Estimated Install Date.'),
+  "position": zod.int(),
+  "techCanMove": zod.boolean().describe('Install techs may move jobs into this stage'),
+  "isComplete": zod.boolean().describe('Work is finished — excluded from late \/ upcoming-install logic'),
+  "jobCount": zod.int().describe('Active (non-archived) jobs currently in this stage')
+})
+
+
+/**
+ * @summary Set the order of one pipeline's stages (full-access only). keys must list every active stage in that pipeline exactly once.
+ */
+
+
+
+export const ReorderStagesBody = zod.object({
+  "pipeline": zod.enum(['sales', 'job']).describe('sales = leads (Sales Pipeline); job = post-sale work (Job Board). Moving into the job pipeline requires an Estimated Install Date.'),
+  "keys": zod.array(zod.string()).min(1)
+})
+
+export const ReorderStagesResponseItem = zod.object({
+  "id": zod.int(),
+  "key": zod.string().describe('Stable slug stored in jobs.stage'),
+  "label": zod.string(),
+  "pipeline": zod.enum(['sales', 'job']).describe('sales = leads (Sales Pipeline); job = post-sale work (Job Board). Moving into the job pipeline requires an Estimated Install Date.'),
+  "position": zod.int(),
+  "techCanMove": zod.boolean().describe('Install techs may move jobs into this stage'),
+  "isComplete": zod.boolean().describe('Work is finished — excluded from late \/ upcoming-install logic'),
+  "jobCount": zod.int().describe('Active (non-archived) jobs currently in this stage')
+})
+export const ReorderStagesResponse = zod.array(ReorderStagesResponseItem)
+
+
+/**
+ * @summary Rename a stage or change its flags (full-access only)
+ */
+export const UpdateStageParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const updateStageBodyLabelMax = 60;
+
+
+
+export const UpdateStageBody = zod.object({
+  "label": zod.string().min(1).max(updateStageBodyLabelMax).optional(),
+  "techCanMove": zod.boolean().optional(),
+  "isComplete": zod.boolean().optional()
+})
+
+export const UpdateStageResponse = zod.object({
+  "id": zod.int(),
+  "key": zod.string().describe('Stable slug stored in jobs.stage'),
+  "label": zod.string(),
+  "pipeline": zod.enum(['sales', 'job']).describe('sales = leads (Sales Pipeline); job = post-sale work (Job Board). Moving into the job pipeline requires an Estimated Install Date.'),
+  "position": zod.int(),
+  "techCanMove": zod.boolean().describe('Install techs may move jobs into this stage'),
+  "isComplete": zod.boolean().describe('Work is finished — excluded from late \/ upcoming-install logic'),
+  "jobCount": zod.int().describe('Active (non-archived) jobs currently in this stage')
+})
+
+
+/**
+ * @summary Remove a stage (full-access only). If any jobs are in it, moveTo (a stage key in the same pipeline) is required and the jobs are moved first, in the same transaction.
+ */
+export const RemoveStageParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const RemoveStageBody = zod.object({
+  "moveTo": zod.string().nullish().describe('Stage key (same pipeline) to move this stage\'s jobs into before removal')
+})
+
+export const RemoveStageResponse = zod.void()
 
 
 /**

@@ -5,12 +5,14 @@ import jobsRouter from "./jobs";
 import leadSyncRouter from "./leadSync";
 import feedbackRouter from "./feedback";
 import demoRouter from "./demo";
+import stagesRouter from "./stages";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(demoRouter);
 router.use(usersRouter);
+router.use(stagesRouter);
 router.use(jobsRouter);
 router.use(leadSyncRouter);
 router.use(feedbackRouter);

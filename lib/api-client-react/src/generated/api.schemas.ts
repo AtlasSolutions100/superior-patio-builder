@@ -156,30 +156,75 @@ export interface ProfileUpdate {
 }
 
 /**
- * Exact operational stages in order
+ * sales = leads (Sales Pipeline); job = post-sale work (Job Board). Moving into the job pipeline requires an Estimated Install Date.
  */
-export type JobStage = typeof JobStage[keyof typeof JobStage];
+export type StagePipeline = typeof StagePipeline[keyof typeof StagePipeline];
 
 
-export const JobStage = {
-  new_lead: 'new_lead',
-  scheduled: 'scheduled',
-  bid_given: 'bid_given',
-  sold: 'sold',
-  invoiced_with_quickbooks: 'invoiced_with_quickbooks',
-  deposit_paid: 'deposit_paid',
-  pre_order_site_visit: 'pre_order_site_visit',
-  material_ordered: 'material_ordered',
-  non_standard_material_ordered: 'non_standard_material_ordered',
-  permit_applied: 'permit_applied',
-  footings_needed: 'footings_needed',
-  other_prep_work: 'other_prep_work',
-  material_received: 'material_received',
-  ready_to_install: 'ready_to_install',
-  installed: 'installed',
-  post_install_follow_up: 'post_install_follow_up',
-  review_asked: 'review_asked',
+export const StagePipeline = {
+  sales: 'sales',
+  job: 'job',
 } as const;
+
+export interface Stage {
+  id: number;
+  /** Stable slug stored in jobs.stage */
+  key: string;
+  label: string;
+  pipeline: StagePipeline;
+  position: number;
+  /** Install techs may move jobs into this stage */
+  techCanMove: boolean;
+  /** Work is finished — excluded from late / upcoming-install logic */
+  isComplete: boolean;
+  /** Active (non-archived) jobs currently in this stage */
+  jobCount: number;
+}
+
+export interface StageInput {
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
+  label: string;
+  pipeline: StagePipeline;
+  techCanMove?: boolean;
+  isComplete?: boolean;
+  /**
+     * Insert directly after this stage key; omit to append at the end
+     * @nullable
+     */
+  afterKey?: string | null;
+}
+
+export interface StageUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
+  label?: string;
+  techCanMove?: boolean;
+  isComplete?: boolean;
+}
+
+export interface StageRemove {
+  /**
+     * Stage key (same pipeline) to move this stage's jobs into before removal
+     * @nullable
+     */
+  moveTo?: string | null;
+}
+
+export interface StageReorder {
+  pipeline: StagePipeline;
+  /** @minItems 1 */
+  keys: string[];
+}
+
+/**
+ * Key of a row in the stages table (admin-editable; see /stages). Validated by the API on every write.
+ */
+export type JobStage = string;
 
 export interface Job {
   id: number;

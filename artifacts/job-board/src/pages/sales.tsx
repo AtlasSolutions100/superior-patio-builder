@@ -8,7 +8,7 @@ import {
   Job,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { SALES_STAGES, PIPELINE_STAGES, STAGE_LABELS } from "@/lib/utils";
+import { useStages } from "@/hooks/use-stages";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,14 +24,6 @@ import { Input } from "@/components/ui/input";
 import { AddLeadDialog } from "@/components/add-lead-dialog";
 import { KanbanBoard, BoardGroup } from "@/components/kanban-board";
 
-// Four single-stage columns: New Lead → Scheduled → Bid Given → Sold.
-// Sold also appears on the main Job Board — same jobs, both views.
-const SALES_GROUPS: BoardGroup[] = SALES_STAGES.map(stage => ({
-  key: stage,
-  label: STAGE_LABELS[stage] || stage,
-  stages: [stage],
-}));
-
 function formatSyncedAt(iso: string): string {
   const d = new Date(iso);
   const mins = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
@@ -44,6 +36,30 @@ export default function SalesPage() {
   const { data: user } = useGetCurrentUser();
   const { data: jobs, isLoading, error, refetch, isRefetching } = useListJobs();
   const isAdmin = user?.role === "admin";
+  const stg = useStages();
+
+  // One column per sales stage, plus a read-only column for the first Job
+  // Board stage so a just-sold lead visibly "lands" before leaving the
+  // pipeline. Same jobs appear on the main Job Board.
+  const salesGroups = React.useMemo<BoardGroup[]>(
+    () => [
+      ...stg.salesStages.map(stage => ({
+        key: stage.key,
+        label: stage.label,
+        stages: [stage.key],
+      })),
+      ...(stg.entryJobStage
+        ? [
+            {
+              key: stg.entryJobStage.key,
+              label: stg.entryJobStage.label,
+              stages: [stg.entryJobStage.key],
+            },
+          ]
+        : []),
+    ],
+    [stg.salesStages, stg.entryJobStage]
+  );
 
   const queryClient = useQueryClient();
   const { data: syncStatus } = useGetLeadSyncStatus({
@@ -154,10 +170,11 @@ export default function SalesPage() {
 
   const salesJobs = React.useMemo<Job[]>(
     () =>
-      (jobs || []).filter(job =>
-        (SALES_STAGES as readonly string[]).includes(job.stage)
+      (jobs || []).filter(
+        job =>
+          stg.isSalesStage(job.stage) || job.stage === stg.entryJobStage?.key
       ),
-    [jobs]
+    [jobs, stg]
   );
 
   // Distinct sources present on the pipeline, for the Source dropdown.
@@ -190,20 +207,14 @@ export default function SalesPage() {
     });
   }, [salesJobs, fltStage, fltSource, fltFrom, fltTo, fltSearch]);
 
-  // Header counts active leads only — Sold jobs are converted, not leads.
+  // Header counts active leads only — converted (sold) jobs are not leads.
   const activeLeadCount = React.useMemo(
-    () =>
-      salesJobs.filter(job =>
-        (PIPELINE_STAGES as readonly string[]).includes(job.stage)
-      ).length,
-    [salesJobs]
+    () => salesJobs.filter(job => stg.isSalesStage(job.stage)).length,
+    [salesJobs, stg]
   );
   const shownLeadCount = React.useMemo(
-    () =>
-      filteredJobs.filter(job =>
-        (PIPELINE_STAGES as readonly string[]).includes(job.stage)
-      ).length,
-    [filteredJobs]
+    () => filteredJobs.filter(job => stg.isSalesStage(job.stage)).length,
+    [filteredJobs, stg]
   );
 
   if (error && !jobs) {
@@ -345,9 +356,9 @@ export default function SalesPage() {
           onChange={e => setFltStage(e.target.value)}
         >
           <option value="">All stages</option>
-          {SALES_STAGES.map(s => (
-            <option key={s} value={s}>
-              {STAGE_LABELS[s] ?? s}
+          {[...stg.salesStages, ...(stg.entryJobStage ? [stg.entryJobStage] : [])].map(s => (
+            <option key={s.key} value={s.key}>
+              {s.label}
             </option>
           ))}
         </select>
@@ -415,8 +426,8 @@ export default function SalesPage() {
 
       <KanbanBoard
         jobs={filteredJobs}
-        groups={SALES_GROUPS}
-        isLoading={isLoading}
+        groups={salesGroups}
+        isLoading={isLoading || stg.isLoading}
         cardVariant="lead"
         selectedIds={selectMode ? selectedIds : undefined}
         onToggleSelect={selectMode ? toggleSelect : undefined}

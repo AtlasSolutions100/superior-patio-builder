@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { STAGE_LABELS } from "@/lib/utils";
+import { useStages } from "@/hooks/use-stages";
 import { formatPhoneInput, isLikelyValidPhone } from "@/lib/phone";
 import { toast } from "sonner";
 import { JobNotes } from "./job-notes";
@@ -38,20 +38,15 @@ const jobSchema = z.object({
   estimatedInstallDate: z.string().optional().nullable(),
   lastNote: z.string().optional().nullable(),
   stage: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.stage === "sold" && !data.estimatedInstallDate) {
-    ctx.addIssue({
-      path: ["estimatedInstallDate"],
-      code: z.ZodIssueCode.custom,
-      message: "Required when initial stage is Sold",
-    });
-  }
 });
+// The "job stages need an install date" rule is checked in onSubmit — which
+// stages are job stages is data (Settings), not something a static schema knows.
 
 type JobFormData = z.infer<typeof jobSchema>;
 
 export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolean, onOpenChange: (open: boolean) => void }) {
   const { data: user } = useGetCurrentUser();
+  const stg = useStages();
   const createJob = useCreateJob();
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
@@ -80,6 +75,7 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
   });
 
   // reset form when job changes or dialog opens
+  const entrySalesKey = stg.entrySalesStage?.key;
   React.useEffect(() => {
     if (open) {
       if (job) {
@@ -98,16 +94,27 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
           source: "",
           estimatedInstallDate: "",
           lastNote: "",
-          stage: "new_lead",
+          stage: entrySalesKey ?? "",
         });
       }
     }
-  }, [job, open, form]);
+  }, [job, open, form, entrySalesKey]);
 
   const onSubmit = (data: JobFormData) => {
     if (!isAdmin) {
       // Techs/viewers manage notes through the Notes section; nothing else to save.
       onOpenChange(false);
+      return;
+    }
+
+    // Starting a job in the job pipeline requires an install date (same rule
+    // as the server); leads (sales pipeline) don't.
+    const stageKey = data.stage || stg.entrySalesStage?.key;
+    if (!isEditing && stageKey && stg.isJobStage(stageKey) && !data.estimatedInstallDate) {
+      form.setError("estimatedInstallDate", {
+        type: "custom",
+        message: `Required when starting in ${stg.labelOf(stageKey)}`,
+      });
       return;
     }
 
@@ -134,7 +141,7 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
       createJob.mutate({
         data: {
           ...data,
-          stage: data.stage as JobStage,
+          stage: stageKey as JobStage,
           contractAmount: data.contractAmount || undefined,
           estimatedInstallDate: data.estimatedInstallDate || undefined,
         } as JobInput
@@ -287,9 +294,16 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   disabled={fieldsDisabled}
                 >
-                  {Object.entries(STAGE_LABELS).map(([val, label]) => (
-                    <option key={val} value={val}>{label}</option>
-                  ))}
+                  <optgroup label="Sales Pipeline (lead)">
+                    {stg.salesStages.map(s => (
+                      <option key={s.key} value={s.key}>{s.label}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Job Board">
+                    {stg.jobStages.map(s => (
+                      <option key={s.key} value={s.key}>{s.label}</option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
             )}

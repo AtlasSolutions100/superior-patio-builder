@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Job, JobStage, useGetCurrentUser } from "@workspace/api-client-react";
-import { STAGE_LABELS, sortByInstallDate } from "@/lib/utils";
+import { sortByInstallDate } from "@/lib/utils";
+import { useStages } from "@/hooks/use-stages";
 import { Loader2 } from "lucide-react";
 import JobCard from "@/components/job-card";
 import { MoveStageDialog } from "@/components/move-stage-dialog";
@@ -49,6 +50,7 @@ export function KanbanBoard({
   emptyLabel?: string;
 }) {
   const { data: user } = useGetCurrentUser();
+  const stg = useStages();
 
   // Drag-and-drop state. Dropping never moves a job directly — it opens the
   // same MoveStageDialog used by the "Move" dropdown so all rules
@@ -100,15 +102,19 @@ export function KanbanBoard({
 
   // Stages a dragged job may be dropped into, per role. Same rules as the
   // "Move" dropdown: admins anywhere (except the current stage), techs only
-  // into Installed, viewers not at all.
+  // into job-pipeline stages flagged "Techs can move here", viewers not at all.
   const droppableStages = (stages: string[]): JobStage[] => {
     if (!draggingJob) return [];
     return stages.filter(stage => {
       if (stage === draggingJob.stage) return false;
-      if (user?.role === "tech" && stage !== "installed") return false;
-      if (user?.role !== "tech" && user?.role !== "admin") return false;
+      if (user?.role === "tech") {
+        const meta = stg.byKey.get(stage);
+        if (meta?.pipeline !== "job" || !meta.techCanMove) return false;
+        return true;
+      }
+      if (user?.role !== "admin") return false;
       return true;
-    }) as JobStage[];
+    });
   };
 
   const handleDrop = (stage: JobStage) => {
@@ -273,6 +279,7 @@ function StageDropZone({
   stage: JobStage;
   onDropStage: (stage: JobStage) => void;
 }) {
+  const stg = useStages();
   const [isOver, setIsOver] = React.useState(false);
 
   return (
@@ -294,7 +301,7 @@ function StageDropZone({
           : "border-primary/40 bg-primary/5 text-muted-foreground"
       }`}
     >
-      <span className="truncate">{STAGE_LABELS[stage] || stage}</span>
+      <span className="truncate">{stg.labelOf(stage)}</span>
     </div>
   );
 }

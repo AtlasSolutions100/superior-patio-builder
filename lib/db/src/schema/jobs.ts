@@ -10,32 +10,12 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const JOB_STAGES = [
-  "new_lead",
-  "scheduled",
-  "bid_given",
-  "sold",
-  "invoiced_with_quickbooks",
-  "deposit_paid",
-  "pre_order_site_visit",
-  "material_ordered",
-  "non_standard_material_ordered",
-  "permit_applied",
-  "footings_needed",
-  "other_prep_work",
-  "material_received",
-  "ready_to_install",
-  "installed",
-  "post_install_follow_up",
-  "review_asked",
-] as const;
-
-export type JobStage = (typeof JOB_STAGES)[number];
-
-/** Stages at or beyond "sold" require an estimated install date. */
-export const POST_SOLD_STAGES: readonly JobStage[] = JOB_STAGES.slice(
-  JOB_STAGES.indexOf("sold"),
-);
+/**
+ * A job's stage is the `key` of a row in the `stages` table (see
+ * ./stages.ts). Stages are admin-editable, so this is a plain string; the API
+ * validates keys on every write.
+ */
+export type JobStage = string;
 
 export const jobsTable = pgTable("jobs", {
   id: serial("id").primaryKey(),

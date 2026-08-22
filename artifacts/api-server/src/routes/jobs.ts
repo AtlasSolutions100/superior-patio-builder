@@ -4,8 +4,6 @@ import {
   db,
   jobsTable,
   jobNotesTable,
-  POST_SOLD_STAGES,
-  JOB_STAGES,
   type Job,
   type JobNote,
   type JobStage,
@@ -35,6 +33,14 @@ import {
 } from "@workspace/api-zod";
 import { requireUser, requireAdmin } from "../middlewares/auth";
 import { leadDateSql } from "../lib/leadDate";
+import {
+  allStageLabels,
+  entryStage,
+  getPipelineStages,
+  getStage,
+  isJobStage,
+  stageKeys,
+} from "../lib/stages";
 
 const router: IRouter = Router();
 
@@ -55,8 +61,9 @@ const installDateOrder = [
   asc(jobsTable.customerName),
 ];
 
-function requiresInstallDate(stage: JobStage): boolean {
-  return POST_SOLD_STAGES.includes(stage);
+/** Every stage in the job pipeline requires an Estimated Install Date. */
+async function requiresInstallDate(stage: JobStage): Promise<boolean> {
+  return isJobStage(stage);
 }
 
 router.get("/jobs", requireUser, async (req, res): Promise<void> => {
@@ -72,6 +79,11 @@ router.get("/jobs", requireUser, async (req, res): Promise<void> => {
   const conditions = [
     archived ? isNotNull(jobsTable.archivedAt) : isNull(jobsTable.archivedAt),
   ];
+  // Leads (sales pipeline) are admin-only — techs and viewers work the Job
+  // Board, so the data layer never hands them a lead.
+  if (req.appUser!.role !== "admin") {
+    conditions.push(inArray(jobsTable.stage, await stageKeys("job")));
+  }
   if (stage) conditions.push(eq(jobsTable.stage, stage));
   if (city) conditions.push(ilike(jobsTable.city, city));
   if (coverType) conditions.push(ilike(jobsTable.coverType, coverType));
@@ -111,9 +123,13 @@ router.post("/jobs", requireUser, requireAdmin, async (req, res): Promise<void> 
     return;
   }
   const data = parsed.data;
-  const stage = (data.stage ?? "new_lead") as JobStage;
+  const stage = data.stage ?? (await entryStage("sales"))?.key;
+  if (!stage || !(await getStage(stage))) {
+    res.status(400).json({ error: "Unknown stage" });
+    return;
+  }
 
-  if (requiresInstallDate(stage) && !data.estimatedInstallDate) {
+  if ((await requiresInstallDate(stage)) && !data.estimatedInstallDate) {
     res.status(400).json({
       error: "An Estimated Installation Date is required for Sold jobs",
     });
@@ -153,30 +169,12 @@ router.get("/jobs/export", requireUser, async (_req, res): Promise<void> => {
     .where(
       and(
         isNull(jobsTable.archivedAt),
-        inArray(jobsTable.stage, POST_SOLD_STAGES as unknown as string[]),
+        inArray(jobsTable.stage, await stageKeys("job")),
       ),
     )
     .orderBy(...installDateOrder);
 
-  const stageLabels: Record<string, string> = {
-    new_lead: "New Lead",
-    scheduled: "Scheduled",
-    bid_given: "Bid Given",
-    sold: "Sold",
-    invoiced_with_quickbooks: "Invoiced with QuickBooks",
-    deposit_paid: "Deposit Paid",
-    pre_order_site_visit: "Pre Order Site Visit",
-    material_ordered: "Material Ordered",
-    non_standard_material_ordered: "Non Standard Material Ordered",
-    permit_applied: "Permit Applied",
-    footings_needed: "Footings Needed",
-    other_prep_work: "Other Prep Work",
-    material_received: "Material Received",
-    ready_to_install: "Ready to Install",
-    installed: "Installed",
-    post_install_follow_up: "Post Install Follow up",
-    review_asked: "Google Review or referral Asked for",
-  };
+  const stageLabels = await allStageLabels();
 
   const header = [
     "Customer Name",
@@ -298,7 +296,7 @@ router.patch("/jobs/:id", requireUser, async (req, res): Promise<void> => {
   if (
     "estimatedInstallDate" in data &&
     data.estimatedInstallDate == null &&
-    requiresInstallDate(existing.stage as JobStage)
+    (await requiresInstallDate(existing.stage))
   ) {
     res.status(400).json({
       error: "Sold jobs must keep an Estimated Installation Date",
@@ -398,15 +396,21 @@ router.post(
         inArray(jobsTable.id, jobIds),
         // Sales-pipeline stages only — the bulk tool is for leads, not
         // operational jobs on the main board.
-        inArray(jobsTable.stage, ["new_lead", "scheduled", "bid_given", "sold"]),
+        inArray(jobsTable.stage, await stageKeys("sales")),
       );
     } else {
-      // Age cutoff: only New Lead — Scheduled/Bid Given/Sold stay untouched.
-      // A lead's real age is its spreadsheet submission date when it was
-      // imported; manual leads fall back to when they were created in the app.
+      // Age cutoff: only the entry stage (New Lead) — leads that were worked
+      // (Scheduled, Bid Given, …) stay untouched. A lead's real age is its
+      // spreadsheet submission date when it was imported; manual leads fall
+      // back to when they were created in the app.
+      const entry = await entryStage("sales");
+      if (!entry) {
+        res.status(400).json({ error: "The sales pipeline has no stages" });
+        return;
+      }
       where = and(
         isNull(jobsTable.archivedAt),
-        eq(jobsTable.stage, "new_lead"),
+        eq(jobsTable.stage, entry.key),
         sql`${leadDateSql} < NOW() - make_interval(days => ${olderThanDays})`,
       );
     }
@@ -598,11 +602,10 @@ router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => 
     res.status(403).json({ error: "View-only access" });
     return;
   }
-  const targetStage = body.data.stage as JobStage;
-  if (role === "tech" && targetStage !== "installed") {
-    res
-      .status(403)
-      .json({ error: "Install techs can only move jobs to Installed" });
+  const targetStage = body.data.stage;
+  const target = await getStage(targetStage);
+  if (!target) {
+    res.status(400).json({ error: "Unknown stage" });
     return;
   }
 
@@ -614,6 +617,22 @@ router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => 
     res.status(404).json({ error: "Job not found" });
     return;
   }
+
+  // Techs work the Job Board only: the job must already be in the job
+  // pipeline, and the destination must be a job stage flagged for techs.
+  if (role === "tech") {
+    const current = await getStage(existing.stage);
+    if (
+      current?.pipeline !== "job" ||
+      target.pipeline !== "job" ||
+      !target.techCanMove
+    ) {
+      res.status(403).json({
+        error: `Install techs can't move jobs to ${target.label}`,
+      });
+      return;
+    }
+  }
   if (existing.archivedAt) {
     res
       .status(409)
@@ -624,11 +643,9 @@ router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => 
   const newDate = body.data.estimatedInstallDate ?? undefined;
   const effectiveDate = newDate ?? existing.estimatedInstallDate;
 
-  if (requiresInstallDate(targetStage) && !effectiveDate) {
+  if (target.pipeline === "job" && !effectiveDate) {
     res.status(400).json({
-      error: `An Estimated Installation Date is required when moving a job to ${
-        targetStage === "sold" ? "Sold" : "Sold or a later stage"
-      }`,
+      error: `An Estimated Installation Date is required when moving a job to ${target.label}`,
     });
     return;
   }
@@ -652,15 +669,18 @@ router.get("/summary", requireUser, async (_req, res): Promise<void> => {
     .where(isNull(jobsTable.archivedAt))
     .orderBy(...installDateOrder);
 
-  // Header metrics count real jobs only — leads (pre-Sold) live on the
+  // Header metrics count real jobs only — leads (sales pipeline) live on the
   // Sales Pipeline and must not inflate Active Jobs / Pipeline $ / installs.
-  const jobs = allActive.filter((j) =>
-    POST_SOLD_STAGES.includes(j.stage as JobStage),
-  );
+  const jobStages = await getPipelineStages("job");
+  const jobStageKeys = new Set(jobStages.map((s) => s.key));
+  const completeKeys = new Set(jobStages.filter((s) => s.isComplete).map((s) => s.key));
+  const jobs = allActive.filter((j) => jobStageKeys.has(j.stage));
 
   // Per-stage numbers count real jobs only, matching the board itself —
-  // sales-stage leads must not leak into any /board figure.
-  const byStage = JOB_STAGES.map((stage) => {
+  // sales-stage leads must not leak into any /board figure. Sales stages are
+  // still listed (at zero) so the shape stays stable for the client.
+  const salesStages = await getPipelineStages("sales");
+  const byStage = [...salesStages, ...jobStages].map(({ key: stage }) => {
     const inStage = jobs.filter((j) => j.stage === stage);
     return {
       stage,
@@ -677,8 +697,7 @@ router.get("/summary", requireUser, async (_req, res): Promise<void> => {
   const todayStr = today.toISOString().slice(0, 10);
   const in14Str = in14.toISOString().slice(0, 10);
 
-  const notYetInstalled = (stage: string) =>
-    JOB_STAGES.indexOf(stage as JobStage) < JOB_STAGES.indexOf("installed");
+  const notYetInstalled = (stage: string) => !completeKeys.has(stage);
 
   const upcoming = jobs.filter(
     (j) =>

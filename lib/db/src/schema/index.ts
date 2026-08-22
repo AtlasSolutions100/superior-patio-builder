@@ -3,3 +3,4 @@ export * from "./jobs";
 export * from "./jobNotes";
 export * from "./leadImports";
 export * from "./feedback";
+export * from "./stages";
