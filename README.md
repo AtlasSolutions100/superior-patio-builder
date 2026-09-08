@@ -50,17 +50,48 @@ boot — fresh databases get the default 17-stage pipeline automatically.
 Tests: `pnpm --filter @workspace/api-server test` (needs `DATABASE_URL`).
 Typecheck everything: `pnpm typecheck`.
 
-## Deploy notes
+## Deploy
 
-- The API is stateless: any Node host + any Postgres. The web app builds to
-  static files (`pnpm --filter @workspace/job-board build`, `BASE_PATH=/`);
-  serve them and route `/api/*` to the API server.
-- Production needs a Clerk **production** instance (`pk_live_`/`sk_live_`) —
-  demo logins disable themselves automatically on live keys.
+The app deploys as **one service**: the API server also serves the built web
+app when `WEB_DIST` is set, so there is no CORS, reverse proxy, or routing
+config to get wrong. Works on any container/Node host (Railway, Render, Fly,
+Cloud Run, a VPS).
+
+| Setting | Value |
+|---|---|
+| Build command | `pnpm install --frozen-lockfile && pnpm run build:deploy` |
+| Start command | `pnpm run start:deploy` |
+| Health check | `/api/healthz` |
+
+Environment variables:
+
+```sh
+DATABASE_URL=postgres://...            # any Postgres
+NODE_ENV=production
+PORT=8080                              # most hosts inject this
+WEB_DIST=artifacts/job-board/dist/public
+CLERK_PUBLISHABLE_KEY=pk_live_...
+CLERK_SECRET_KEY=sk_live_...
+VITE_CLERK_PUBLISHABLE_KEY=pk_live_... # must be set at BUILD time
+```
+
+`VITE_*` values are baked into the bundle at build time, not read at runtime —
+set it before the build step or the front end ships with the wrong key.
+
+Notes:
+
+- The API runs a background lead-sync interval, so it needs a **long-running
+  process**. Container hosts are fine; serverless/edge functions are not.
+- Schema changes apply themselves: startup migrations are idempotent and run
+  on boot, and a fresh database seeds the default stages.
+- Production needs a Clerk **production** instance (`pk_live_`/`sk_live_`).
+  The one-click demo logins disable themselves on live keys and whenever
+  `NODE_ENV=production` — that is deliberate. In production the first person
+  to sign up becomes admin; everyone else needs an invite from `/team`.
 - `artifacts/api-server/src/middlewares/clerkProxyMiddleware.ts` and the
   `.replit`/`replit.md` files are leftovers from the Replit era; harmless
-  elsewhere (the proxy no-ops without its env), removable once Replit is
-  fully retired.
+  elsewhere (the proxy no-ops unless the front end is told to use it), and
+  removable once Replit is fully retired.
 
 Project docs: `project-brief.md` (original client brief) and the field guide /
 gameplan artifacts linked from the dev session notes.
