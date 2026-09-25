@@ -17,6 +17,7 @@ import ListPage from "./pages/list";
 import TeamPage from "./pages/team";
 import FeedbackPage from "./pages/feedback";
 import SettingsPage from "./pages/settings";
+import { PrivacyPage, TermsPage } from "./pages/legal";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -332,6 +333,8 @@ function ClerkProviderWithRoutes() {
         <Toaster theme="system" />
         <Switch>
           <Route path="/" component={HomeRedirect} />
+          <Route path="/privacy" component={PrivacyPage} />
+          <Route path="/terms" component={TermsPage} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
           
