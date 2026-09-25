@@ -93,6 +93,41 @@ interface TokenResponse {
   expires_in: number;
 }
 
+/**
+ * Every Intuit response carries an `intuit_tid` header; their support team
+ * asks for it when troubleshooting, so it rides along on every error we
+ * raise and every error we log.
+ */
+export class QboError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string | null,
+    readonly intuitTid: string | null,
+  ) {
+    super(intuitTid ? `${message} [intuit_tid ${intuitTid}]` : message);
+  }
+}
+
+async function qboFailure(res: Response, what: string): Promise<QboError> {
+  const text = await res.text().catch(() => "");
+  let code: string | null = null;
+  try {
+    const j = JSON.parse(text) as { error?: string; Fault?: { Error?: { code?: string }[] } };
+    code = j.error ?? j.Fault?.Error?.[0]?.code ?? null;
+  } catch {
+    // not JSON
+  }
+  const err = new QboError(`${what} (${res.status}): ${text.slice(0, 200)}`, res.status, code, res.headers.get("intuit_tid"));
+  logger.error({ status: res.status, code, intuit_tid: err.intuitTid, body: text.slice(0, 500) }, what);
+  return err;
+}
+
+/** Intuit's way of saying the refresh token is dead: the user must reconnect. */
+export function isInvalidGrant(err: unknown): boolean {
+  return err instanceof QboError && (err.code === "invalid_grant" || err.status === 401);
+}
+
 async function tokenRequest(env: QboEnv, body: URLSearchParams): Promise<TokenResponse> {
   const basic = Buffer.from(`${env.clientId}:${env.clientSecret}`).toString("base64");
   const res = await fetch(TOKEN_URL, {
@@ -104,10 +139,7 @@ async function tokenRequest(env: QboEnv, body: URLSearchParams): Promise<TokenRe
     },
     body,
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`QuickBooks token request failed (${res.status}): ${text.slice(0, 200)}`);
-  }
+  if (!res.ok) throw await qboFailure(res, "QuickBooks token request failed");
   return (await res.json()) as TokenResponse;
 }
 
@@ -187,9 +219,28 @@ export async function accessToken(env: QboEnv): Promise<{ token: string; realmId
   const fresh = conn.accessToken && conn.expiresAt && conn.expiresAt.getTime() > Date.now();
   if (fresh) return { token: conn.accessToken!, realmId: conn.realmId };
 
-  const tokens = await refreshTokens(env, conn.refreshToken);
+  let tokens: TokenResponse;
+  try {
+    tokens = await refreshTokens(env, conn.refreshToken);
+  } catch (err) {
+    if (isInvalidGrant(err)) await markDisconnected("QuickBooks connection expired — reconnect it in Settings");
+    throw err;
+  }
   await saveTokens(tokens); // rotated refresh token lands here, before any API call
   return { token: tokens.access_token, realmId: conn.realmId };
+}
+
+/**
+ * The refresh token was rejected (expired after ~100 days of no use, revoked
+ * from the Intuit side, or the app was disconnected in QuickBooks). Forget
+ * the dead tokens so Settings shows "Not connected" with the reason, and the
+ * admin is asked to reconnect instead of every push failing silently.
+ */
+export async function markDisconnected(reason: string): Promise<void> {
+  await db
+    .update(integrationsTable)
+    .set({ accessToken: null, refreshToken: null, expiresAt: null, lastError: reason })
+    .where(eq(integrationsTable.provider, "quickbooks"));
 }
 
 // ---------------------------------------------------------------------------
@@ -213,10 +264,7 @@ async function qboFetch<T>(
       ...(init.headers ?? {}),
     },
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`QuickBooks API ${res.status} on ${path}: ${text.slice(0, 300)}`);
-  }
+  if (!res.ok) throw await qboFailure(res, `QuickBooks API error on ${path}`);
   return (await res.json()) as T;
 }
 

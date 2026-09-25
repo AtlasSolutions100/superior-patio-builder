@@ -158,13 +158,19 @@ function QuickBooksCard({ status }: { status: IntegrationsStatus["quickbooks"] }
           )}
         </>
       ) : (
-        <StatusLine ok={false}>Not connected. Sign in with the QuickBooks account that owns your company file.</StatusLine>
+        <>
+          <StatusLine ok={false}>
+            {status.lastError
+              ? status.lastError
+              : "Not connected. Sign in with the QuickBooks account that owns your company file."}
+          </StatusLine>
+        </>
       )}
 
       <div className="flex flex-wrap gap-2">
         {status.configured && !status.connected && (
           <Button asChild size="sm" className="h-8">
-            <a href="/api/integrations/quickbooks/connect">Connect QuickBooks</a>
+            <a href="/api/integrations/quickbooks/connect">{status.lastError ? "Reconnect QuickBooks" : "Connect QuickBooks"}</a>
           </Button>
         )}
         {status.connected && (

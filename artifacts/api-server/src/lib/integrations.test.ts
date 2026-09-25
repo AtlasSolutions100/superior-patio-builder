@@ -81,7 +81,7 @@ test("qbo: an expired access token is refreshed and the rotated refresh token is
     .where(eq(integrationsTable.provider, "quickbooks"));
 
   const calls: { url: string; body: string; auth: string }[] = [];
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     calls.push({
       url,
@@ -114,13 +114,44 @@ test("qbo: an expired access token is refreshed and the rotated refresh token is
   assert.equal(conn?.realmId, "9130", "refresh must not lose the company id");
 });
 
+test("qbo: a rejected refresh token disconnects the app and asks for a reconnect", async () => {
+  await qbo.saveTokens(
+    { access_token: "dead-access", refresh_token: "dead-refresh", expires_in: 3600 },
+    { realmId: "9130" },
+  );
+  await db
+    .update(integrationsTable)
+    .set({ expiresAt: new Date(Date.now() - 1000) })
+    .where(eq(integrationsTable.provider, "quickbooks"));
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ error: "invalid_grant", error_description: "Token invalid" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json", intuit_tid: "tid-123" },
+    })) as typeof fetch;
+
+  await assert.rejects(
+    () => qbo.findCustomerByName(env, "Anyone"),
+    (err: unknown) => {
+      assert.ok(err instanceof qbo.QboError);
+      assert.equal(err.code, "invalid_grant");
+      assert.equal(err.intuitTid, "tid-123");
+      assert.match(err.message, /intuit_tid tid-123/);
+      return true;
+    },
+  );
+  const conn = await qbo.getConnection();
+  assert.equal(conn?.refreshToken, null, "dead tokens must be forgotten");
+  assert.equal(conn?.realmId, "9130", "company id is kept for the reconnect");
+  assert.match(conn?.lastError ?? "", /reconnect/i);
+});
+
 test("qbo: a still-valid access token is reused without a refresh", async () => {
   await qbo.saveTokens(
     { access_token: "live-access", refresh_token: "live-refresh", expires_in: 3600 },
     { realmId: "9130" },
   );
   const urls: string[] = [];
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  globalThis.fetch = (async (input: string | URL | Request) => {
     urls.push(String(input));
     return jsonResponse({ Customer: { Id: "88" } });
   }) as typeof fetch;
