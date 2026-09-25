@@ -62,6 +62,91 @@ export interface BulkArchiveResult {
   count: number;
 }
 
+export type QuickBooksStatusEnvironment = typeof QuickBooksStatusEnvironment[keyof typeof QuickBooksStatusEnvironment];
+
+
+export const QuickBooksStatusEnvironment = {
+  sandbox: 'sandbox',
+  production: 'production',
+} as const;
+
+export interface QuickBooksStatus {
+  /** The server has Intuit app credentials */
+  configured: boolean;
+  connected: boolean;
+  environment: QuickBooksStatusEnvironment;
+  /** @nullable */
+  companyName: string | null;
+  /** @nullable */
+  connectedAt: string | null;
+  /** @nullable */
+  lastSyncAt: string | null;
+  /** @nullable */
+  lastError: string | null;
+}
+
+export interface GoogleSheetsStatus {
+  /** The server has a service-account key */
+  configured: boolean;
+  /**
+     * Share the spreadsheet with this address
+     * @nullable
+     */
+  serviceAccountEmail: string | null;
+  /** @nullable */
+  spreadsheetId: string | null;
+  /** @nullable */
+  spreadsheetTitle: string | null;
+  sheetName: string;
+  enabled: boolean;
+  /** @nullable */
+  lastSyncAt: string | null;
+  /** @nullable */
+  lastError: string | null;
+}
+
+export interface IntegrationsStatus {
+  quickbooks: QuickBooksStatus;
+  googleSheets: GoogleSheetsStatus;
+}
+
+export interface GoogleSheetsConfig {
+  /**
+     * A sheet URL or id; null clears it
+     * @nullable
+     */
+  spreadsheet?: string | null;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  sheetName?: string;
+  enabled?: boolean;
+}
+
+export interface GoogleSheetsTestRequest {
+  /** @minLength 1 */
+  spreadsheet: string;
+}
+
+export interface GoogleSheetsTestResult {
+  ok: boolean;
+  /** @nullable */
+  spreadsheetId: string | null;
+  /** @nullable */
+  title: string | null;
+  tabs: string[];
+  /** @nullable */
+  error: string | null;
+}
+
+export interface IntegrationSyncResult {
+  synced: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+}
+
 export interface CommissionTier {
   id: number;
   /**

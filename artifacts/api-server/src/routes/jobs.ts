@@ -40,6 +40,7 @@ import {
 } from "@workspace/api-zod";
 import { requireUser, requireAdmin } from "../middlewares/auth";
 import { leadDateSql } from "../lib/leadDate";
+import { onJobSold } from "../lib/integrationSync";
 import {
   allStageLabels,
   entryStage,
@@ -299,6 +300,8 @@ router.post("/jobs", requireUser, requireAdmin, async (req, res): Promise<void> 
       text: data.lastNote.trim(),
     });
   }
+
+  if (await isJobStage(stage)) onJobSold(job.id);
 
   res.status(201).json(CreateJobResponse.parse(toApi(job)));
 });
@@ -815,6 +818,11 @@ router.patch("/jobs/:id/stage", requireUser, async (req, res): Promise<void> => 
     })
     .where(eq(jobsTable.id, params.data.id))
     .returning();
+
+  // A lead just became sold work: push it to QuickBooks / the sheet in the
+  // background. The response never waits on outside services.
+  const previous = await getStage(existing.stage);
+  if (previous?.pipeline !== "job" && target.pipeline === "job") onJobSold(job.id);
 
   res.json(MoveJobStageResponse.parse(toApi(job)));
 });

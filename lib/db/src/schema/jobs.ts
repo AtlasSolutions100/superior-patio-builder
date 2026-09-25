@@ -32,6 +32,10 @@ export const jobsTable = pgTable("jobs", {
   lastNote: text("last_note"),
   /** Who sold it — drives commission. Null for leads and older jobs. */
   soldByUserId: integer("sold_by_user_id"),
+  /** QuickBooks Customer id once this job has been pushed there. */
+  qboCustomerId: text("qbo_customer_id"),
+  /** When this job was appended to the connected Google Sheet. */
+  sheetSyncedAt: timestamp("sheet_synced_at", { withTimezone: true }),
   invoicedWithQb: boolean("invoiced_with_qb").notNull().default(false),
   depositPaid: boolean("deposit_paid").notNull().default(false),
   materialOrdered: boolean("material_ordered").notNull().default(false),

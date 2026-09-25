@@ -26,6 +26,7 @@ import {
   type CommissionTier,
 } from "@workspace/api-client-react";
 import { useStages } from "@/hooks/use-stages";
+import { ConnectionsSection } from "@/components/connections-section";
 import { queryClient } from "@/lib/query-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,6 +105,7 @@ export default function SettingsPage() {
             />
             <LeadSheetsSection />
             <CommissionSection />
+            <ConnectionsSection />
           </div>
         )}
       </div>

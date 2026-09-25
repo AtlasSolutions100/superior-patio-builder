@@ -704,6 +704,87 @@ paths:
             text/csv:
               schema:
                 type: string
+  /integrations:
+    get:
+      operationId: getIntegrations
+      tags: [stages]
+      summary: Connection status for QuickBooks and Google Sheets (full-access only). Never returns tokens.
+      responses:
+        "200":
+          description: Status of each connection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationsStatus"
+  /integrations/quickbooks/disconnect:
+    post:
+      operationId: disconnectQuickBooks
+      tags: [stages]
+      summary: Revoke and forget the QuickBooks connection (full-access only)
+      responses:
+        "204":
+          description: Disconnected
+  /integrations/google-sheets:
+    put:
+      operationId: updateGoogleSheets
+      tags: [stages]
+      summary: Set which spreadsheet and tab sold jobs are written to (full-access only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleSheetsConfig"
+      responses:
+        "200":
+          description: Updated status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationsStatus"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /integrations/google-sheets/test:
+    post:
+      operationId: testGoogleSheets
+      tags: [stages]
+      summary: Check the service account can open a spreadsheet (full-access only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleSheetsTestRequest"
+      responses:
+        "200":
+          description: What the service account could see
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoogleSheetsTestResult"
+  /integrations/{provider}/sync:
+    post:
+      operationId: syncIntegration
+      tags: [stages]
+      summary: Push every sold job that has not been synced yet (full-access only)
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [quickbooks, google-sheets]
+      responses:
+        "200":
+          description: Outcome of the backfill
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationSyncResult"
   /commission-tiers:
     get:
       operationId: listCommissionTiers
@@ -1202,6 +1283,105 @@ components:
           description: Leads archived, or matching leads when dryRun
       required:
         - count
+    QuickBooksStatus:
+      type: object
+      properties:
+        configured:
+          type: boolean
+          description: The server has Intuit app credentials
+        connected:
+          type: boolean
+        environment:
+          type: string
+          enum: [sandbox, production]
+        companyName:
+          type: ["string", "null"]
+        connectedAt:
+          type: ["string", "null"]
+        lastSyncAt:
+          type: ["string", "null"]
+        lastError:
+          type: ["string", "null"]
+      required: [configured, connected, environment, companyName, connectedAt, lastSyncAt, lastError]
+    GoogleSheetsStatus:
+      type: object
+      properties:
+        configured:
+          type: boolean
+          description: The server has a service-account key
+        serviceAccountEmail:
+          type: ["string", "null"]
+          description: Share the spreadsheet with this address
+        spreadsheetId:
+          type: ["string", "null"]
+        spreadsheetTitle:
+          type: ["string", "null"]
+        sheetName:
+          type: string
+        enabled:
+          type: boolean
+        lastSyncAt:
+          type: ["string", "null"]
+        lastError:
+          type: ["string", "null"]
+      required: [configured, serviceAccountEmail, spreadsheetId, spreadsheetTitle, sheetName, enabled, lastSyncAt, lastError]
+    IntegrationsStatus:
+      type: object
+      properties:
+        quickbooks:
+          $ref: "#/components/schemas/QuickBooksStatus"
+        googleSheets:
+          $ref: "#/components/schemas/GoogleSheetsStatus"
+      required: [quickbooks, googleSheets]
+    GoogleSheetsConfig:
+      type: object
+      properties:
+        spreadsheet:
+          type: ["string", "null"]
+          description: A sheet URL or id; null clears it
+        sheetName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        enabled:
+          type: boolean
+    GoogleSheetsTestRequest:
+      type: object
+      properties:
+        spreadsheet:
+          type: string
+          minLength: 1
+      required: [spreadsheet]
+    GoogleSheetsTestResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        spreadsheetId:
+          type: ["string", "null"]
+        title:
+          type: ["string", "null"]
+        tabs:
+          type: array
+          items:
+            type: string
+        error:
+          type: ["string", "null"]
+      required: [ok, spreadsheetId, title, tabs, error]
+    IntegrationSyncResult:
+      type: object
+      properties:
+        synced:
+          type: integer
+        skipped:
+          type: integer
+        failed:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required: [synced, skipped, failed, errors]
     CommissionTier:
       type: object
       properties:

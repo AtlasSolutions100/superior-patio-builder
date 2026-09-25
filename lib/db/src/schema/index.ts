@@ -7,3 +7,4 @@ export * from "./stages";
 export * from "./jobAssignments";
 export * from "./leadSources";
 export * from "./commissionTiers";
+export * from "./integrations";

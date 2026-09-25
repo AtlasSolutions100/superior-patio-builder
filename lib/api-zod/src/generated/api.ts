@@ -592,6 +592,108 @@ export const ExportJobsCsvResponse = zod.unknown()
 
 
 /**
+ * @summary Connection status for QuickBooks and Google Sheets (full-access only). Never returns tokens.
+ */
+export const GetIntegrationsResponse = zod.object({
+  "quickbooks": zod.object({
+  "configured": zod.boolean().describe('The server has Intuit app credentials'),
+  "connected": zod.boolean(),
+  "environment": zod.enum(['sandbox', 'production']),
+  "companyName": zod.string().nullable(),
+  "connectedAt": zod.string().nullable(),
+  "lastSyncAt": zod.string().nullable(),
+  "lastError": zod.string().nullable()
+}),
+  "googleSheets": zod.object({
+  "configured": zod.boolean().describe('The server has a service-account key'),
+  "serviceAccountEmail": zod.string().nullable().describe('Share the spreadsheet with this address'),
+  "spreadsheetId": zod.string().nullable(),
+  "spreadsheetTitle": zod.string().nullable(),
+  "sheetName": zod.string(),
+  "enabled": zod.boolean(),
+  "lastSyncAt": zod.string().nullable(),
+  "lastError": zod.string().nullable()
+})
+})
+
+
+/**
+ * @summary Revoke and forget the QuickBooks connection (full-access only)
+ */
+export const DisconnectQuickBooksResponse = zod.void()
+
+
+/**
+ * @summary Set which spreadsheet and tab sold jobs are written to (full-access only)
+ */
+export const updateGoogleSheetsBodySheetNameMax = 80;
+
+
+
+export const UpdateGoogleSheetsBody = zod.object({
+  "spreadsheet": zod.string().nullish().describe('A sheet URL or id; null clears it'),
+  "sheetName": zod.string().min(1).max(updateGoogleSheetsBodySheetNameMax).optional(),
+  "enabled": zod.boolean().optional()
+})
+
+export const UpdateGoogleSheetsResponse = zod.object({
+  "quickbooks": zod.object({
+  "configured": zod.boolean().describe('The server has Intuit app credentials'),
+  "connected": zod.boolean(),
+  "environment": zod.enum(['sandbox', 'production']),
+  "companyName": zod.string().nullable(),
+  "connectedAt": zod.string().nullable(),
+  "lastSyncAt": zod.string().nullable(),
+  "lastError": zod.string().nullable()
+}),
+  "googleSheets": zod.object({
+  "configured": zod.boolean().describe('The server has a service-account key'),
+  "serviceAccountEmail": zod.string().nullable().describe('Share the spreadsheet with this address'),
+  "spreadsheetId": zod.string().nullable(),
+  "spreadsheetTitle": zod.string().nullable(),
+  "sheetName": zod.string(),
+  "enabled": zod.boolean(),
+  "lastSyncAt": zod.string().nullable(),
+  "lastError": zod.string().nullable()
+})
+})
+
+
+/**
+ * @summary Check the service account can open a spreadsheet (full-access only)
+ */
+
+
+
+export const TestGoogleSheetsBody = zod.object({
+  "spreadsheet": zod.string().min(1)
+})
+
+export const TestGoogleSheetsResponse = zod.object({
+  "ok": zod.boolean(),
+  "spreadsheetId": zod.string().nullable(),
+  "title": zod.string().nullable(),
+  "tabs": zod.array(zod.string()),
+  "error": zod.string().nullable()
+})
+
+
+/**
+ * @summary Push every sold job that has not been synced yet (full-access only)
+ */
+export const SyncIntegrationParams = zod.object({
+  "provider": zod.enum(['quickbooks', 'google-sheets'])
+})
+
+export const SyncIntegrationResponse = zod.object({
+  "synced": zod.int(),
+  "skipped": zod.int(),
+  "failed": zod.int(),
+  "errors": zod.array(zod.string())
+})
+
+
+/**
  * @summary Commission bands by contract size (full-access only)
  */
 export const ListCommissionTiersResponseItem = zod.object({

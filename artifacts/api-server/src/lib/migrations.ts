@@ -90,6 +90,25 @@ export async function runStartupMigrations(): Promise<void> {
         updated_at timestamptz NOT NULL DEFAULT now()
       );
 
+      -- Outside services (QuickBooks, Google Sheets) — Settings > Connections.
+      CREATE TABLE IF NOT EXISTS integrations (
+        id serial PRIMARY KEY,
+        provider text NOT NULL UNIQUE,
+        access_token text,
+        refresh_token text,
+        expires_at timestamptz,
+        realm_id text,
+        external_name text,
+        config jsonb NOT NULL DEFAULT '{}'::jsonb,
+        connected_by_user_id integer,
+        connected_at timestamptz,
+        last_sync_at timestamptz,
+        last_error text,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+      ALTER TABLE jobs ADD COLUMN IF NOT EXISTS qbo_customer_id text;
+      ALTER TABLE jobs ADD COLUMN IF NOT EXISTS sheet_synced_at timestamptz;
+
       -- Admin-managed lead sheets (Settings). Replaces the hardcoded/env URL.
       CREATE TABLE IF NOT EXISTS lead_sources (
         id serial PRIMARY KEY,

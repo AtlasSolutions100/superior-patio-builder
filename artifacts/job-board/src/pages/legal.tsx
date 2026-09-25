@@ -14,7 +14,7 @@ import { Link } from "wouter";
  */
 
 const UPDATED = "September 25, 2026";
-const CONTACT = "support@atlas-solutions.dev";
+const CONTACT = "koby@radiantaisoftware.com";
 
 function LegalShell({
   title,

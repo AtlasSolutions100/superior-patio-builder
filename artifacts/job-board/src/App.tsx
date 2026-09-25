@@ -90,7 +90,10 @@ const makeClerkAppearance = (resolved: "light" | "dark") => ({
 
 // Demo login is development-only: dev and prod Clerk user stores are
 // separate, and these buttons only render with development (pk_test) keys.
-const isDevClerkInstance = clerkPubKey.startsWith("pk_test_");
+// Demo logins exist for local development only. import.meta.env.DEV is false
+// in a production build, so the buttons are compiled out of the deployed app
+// regardless of which Clerk instance it happens to be pointed at.
+const isDevClerkInstance = import.meta.env.DEV && clerkPubKey.startsWith("pk_test_");
 
 const DEMO_ACCOUNTS = [
   { label: "Demo Login as Admin", email: "admin@demo.com" },

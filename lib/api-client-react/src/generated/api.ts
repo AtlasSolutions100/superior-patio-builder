@@ -31,7 +31,12 @@ import type {
   ErrorMessage,
   Feedback,
   FeedbackInput,
+  GoogleSheetsConfig,
+  GoogleSheetsTestRequest,
+  GoogleSheetsTestResult,
   HealthStatus,
+  IntegrationSyncResult,
+  IntegrationsStatus,
   Job,
   JobAssigneesUpdate,
   JobInput,
@@ -1780,6 +1785,367 @@ export function useExportJobsCsv<TData = Awaited<ReturnType<typeof exportJobsCsv
 
 
 
+
+export const getGetIntegrationsUrl = () => {
+
+
+
+
+  return `/api/integrations`
+}
+
+/**
+ * @summary Connection status for QuickBooks and Google Sheets (full-access only). Never returns tokens.
+ */
+export const getIntegrations = async ( options?: Parameters<typeof customFetch>[1]): Promise<IntegrationsStatus> => {
+
+  return customFetch<IntegrationsStatus>(getGetIntegrationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIntegrationsQueryKey = () => {
+    return [
+    `/api/integrations`
+    ] as const;
+    }
+
+
+export const getGetIntegrationsQueryOptions = <TData = Awaited<ReturnType<typeof getIntegrations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIntegrations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIntegrationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIntegrations>>> = ({ signal }) => getIntegrations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIntegrations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetIntegrationsQueryResult = NonNullable<Awaited<ReturnType<typeof getIntegrations>>>
+export type GetIntegrationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Connection status for QuickBooks and Google Sheets (full-access only). Never returns tokens.
+ */
+
+export function useGetIntegrations<TData = Awaited<ReturnType<typeof getIntegrations>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIntegrations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetIntegrationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDisconnectQuickBooksUrl = () => {
+
+
+
+
+  return `/api/integrations/quickbooks/disconnect`
+}
+
+/**
+ * @summary Revoke and forget the QuickBooks connection (full-access only)
+ */
+export const disconnectQuickBooks = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDisconnectQuickBooksUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectQuickBooksMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectQuickBooks>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectQuickBooks>>, TError,void, TContext> => {
+
+const mutationKey = ['disconnectQuickBooks'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectQuickBooks>>, void> = () => {
+
+
+          return  disconnectQuickBooks(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectQuickBooksMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectQuickBooks>>>
+
+    export type DisconnectQuickBooksMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Revoke and forget the QuickBooks connection (full-access only)
+ */
+export const useDisconnectQuickBooks = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectQuickBooks>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectQuickBooks>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDisconnectQuickBooksMutationOptions(options));
+    }
+
+export const getUpdateGoogleSheetsUrl = () => {
+
+
+
+
+  return `/api/integrations/google-sheets`
+}
+
+/**
+ * @summary Set which spreadsheet and tab sold jobs are written to (full-access only)
+ */
+export const updateGoogleSheets = async (googleSheetsConfig: GoogleSheetsConfig, options?: Parameters<typeof customFetch>[1]): Promise<IntegrationsStatus> => {
+
+  return customFetch<IntegrationsStatus>(getUpdateGoogleSheetsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(googleSheetsConfig)
+  }
+);}
+
+
+
+
+
+export const getUpdateGoogleSheetsMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGoogleSheets>>, TError,{data: BodyType<GoogleSheetsConfig>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateGoogleSheets>>, TError,{data: BodyType<GoogleSheetsConfig>}, TContext> => {
+
+const mutationKey = ['updateGoogleSheets'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateGoogleSheets>>, {data: BodyType<GoogleSheetsConfig>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateGoogleSheets(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateGoogleSheetsMutationResult = NonNullable<Awaited<ReturnType<typeof updateGoogleSheets>>>
+    export type UpdateGoogleSheetsMutationBody = BodyType<GoogleSheetsConfig>
+    export type UpdateGoogleSheetsMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Set which spreadsheet and tab sold jobs are written to (full-access only)
+ */
+export const useUpdateGoogleSheets = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGoogleSheets>>, TError,{data: BodyType<GoogleSheetsConfig>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateGoogleSheets>>,
+        TError,
+        {data: BodyType<GoogleSheetsConfig>},
+        TContext
+      > => {
+      return useMutation(getUpdateGoogleSheetsMutationOptions(options));
+    }
+
+export const getTestGoogleSheetsUrl = () => {
+
+
+
+
+  return `/api/integrations/google-sheets/test`
+}
+
+/**
+ * @summary Check the service account can open a spreadsheet (full-access only)
+ */
+export const testGoogleSheets = async (googleSheetsTestRequest: GoogleSheetsTestRequest, options?: Parameters<typeof customFetch>[1]): Promise<GoogleSheetsTestResult> => {
+
+  return customFetch<GoogleSheetsTestResult>(getTestGoogleSheetsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(googleSheetsTestRequest)
+  }
+);}
+
+
+
+
+
+export const getTestGoogleSheetsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testGoogleSheets>>, TError,{data: BodyType<GoogleSheetsTestRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testGoogleSheets>>, TError,{data: BodyType<GoogleSheetsTestRequest>}, TContext> => {
+
+const mutationKey = ['testGoogleSheets'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testGoogleSheets>>, {data: BodyType<GoogleSheetsTestRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  testGoogleSheets(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestGoogleSheetsMutationResult = NonNullable<Awaited<ReturnType<typeof testGoogleSheets>>>
+    export type TestGoogleSheetsMutationBody = BodyType<GoogleSheetsTestRequest>
+    export type TestGoogleSheetsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Check the service account can open a spreadsheet (full-access only)
+ */
+export const useTestGoogleSheets = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testGoogleSheets>>, TError,{data: BodyType<GoogleSheetsTestRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof testGoogleSheets>>,
+        TError,
+        {data: BodyType<GoogleSheetsTestRequest>},
+        TContext
+      > => {
+      return useMutation(getTestGoogleSheetsMutationOptions(options));
+    }
+
+export const getSyncIntegrationUrl = (provider: 'quickbooks' | 'google-sheets',) => {
+
+
+
+
+  return `/api/integrations/${provider}/sync`
+}
+
+/**
+ * @summary Push every sold job that has not been synced yet (full-access only)
+ */
+export const syncIntegration = async (provider: 'quickbooks' | 'google-sheets', options?: Parameters<typeof customFetch>[1]): Promise<IntegrationSyncResult> => {
+
+  return customFetch<IntegrationSyncResult>(getSyncIntegrationUrl(provider),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncIntegrationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncIntegration>>, TError,{provider: 'quickbooks' | 'google-sheets'}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncIntegration>>, TError,{provider: 'quickbooks' | 'google-sheets'}, TContext> => {
+
+const mutationKey = ['syncIntegration'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncIntegration>>, {provider: 'quickbooks' | 'google-sheets'}> = (props) => {
+          const {provider} = props ?? {};
+
+          return  syncIntegration(provider,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncIntegrationMutationResult = NonNullable<Awaited<ReturnType<typeof syncIntegration>>>
+
+    export type SyncIntegrationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Push every sold job that has not been synced yet (full-access only)
+ */
+export const useSyncIntegration = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncIntegration>>, TError,{provider: 'quickbooks' | 'google-sheets'}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncIntegration>>,
+        TError,
+        {provider: 'quickbooks' | 'google-sheets'},
+        TContext
+      > => {
+      return useMutation(getSyncIntegrationMutationOptions(options));
+    }
 
 export const getListCommissionTiersUrl = () => {
 
