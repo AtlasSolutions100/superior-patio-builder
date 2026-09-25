@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const TSX = path.resolve(here, "../node_modules/.bin/tsx");
+// Run the scripts through node with tsx as a loader rather than the
+// node_modules/.bin/tsx shim: on Windows that shim is tsx.cmd, which
+// execFile cannot launch (and Node refuses .cmd without a shell), so the
+// child produced no output and these tests failed on Windows only.
 const SEED = path.join(here, "seed-demo.ts");
 const PURGE = path.join(here, "purge-demo-data.ts");
 
@@ -27,8 +30,8 @@ function run(
     // DATABASE_URL cannot leak into the child and accidentally allow it.
     const base: Record<string, string> = { PATH: process.env.PATH ?? "" };
     execFile(
-      TSX,
-      [script, ...args],
+      process.execPath,
+      ["--import", "tsx", script, ...args],
       { env: { ...base, ...env }, timeout: 30_000 },
       (err, stdout, stderr) => {
         const code = err && typeof (err as any).code === "number" ? (err as any).code : err ? 1 : 0;
