@@ -417,6 +417,7 @@ export default function ListPage() {
               <SortableHeader label="City" sortKey="city" sort={sort} onSort={toggleSort} className="w-[8%]" />
               <SortableHeader label="Cover Type" sortKey="coverType" sort={sort} onSort={toggleSort} className="w-[11%]" />
               <SortableHeader label="Amount" sortKey="contractAmount" sort={sort} onSort={toggleSort} className="w-[7%] text-right" />
+              <th className="px-2 py-2 w-[7%] text-right" title="Commission from the rates in Settings">Comm.</th>
               <SortableHeader label="Est. Install" sortKey="estimatedInstallDate" sort={sort} onSort={toggleSort} className="w-[8%]" />
               <SortableHeader label="Stage" sortKey="stage" sort={sort} onSort={toggleSort} className="w-[15%]" />
               <th className="px-1 py-2 text-center w-[4%]" title="Invoiced with QuickBooks">QB</th>
@@ -430,14 +431,14 @@ export default function ListPage() {
           <tbody className="divide-y divide-border bg-card">
             {isLoading ? (
               <tr>
-                <td colSpan={12} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                   Loading jobs...
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={12} className="px-4 py-10 text-center">
+                <td colSpan={13} className="px-4 py-10 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <AlertTriangle className="w-6 h-6 text-destructive" />
                     <p className="text-sm font-medium text-destructive">
@@ -465,7 +466,7 @@ export default function ListPage() {
               </tr>
             ) : sortedJobs?.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={13} className="px-4 py-10 text-center text-muted-foreground">
                   {showArchived ? (
                     "No archived jobs. Archive a finished job from its edit dialog or the list row."
                   ) : hasActiveFilters ? (
@@ -626,6 +627,12 @@ function ListRow({ job, role, archivedView, stg }: { job: Job; role?: string; ar
         <td className="px-2 py-1.5 truncate" title={job.coverType || undefined}>{job.coverType || "-"}</td>
         <td className="px-2 py-1.5 text-right font-mono tabular-nums">
           {job.contractAmount != null ? formatCurrency(job.contractAmount) : "-"}
+        </td>
+        <td
+          className="px-2 py-1.5 text-right font-mono tabular-nums text-muted-foreground"
+          title={job.soldByName ? `Sold by ${job.soldByName}` : undefined}
+        >
+          {job.commissionAmount != null ? formatCurrency(job.commissionAmount) : "-"}
         </td>
         <td className={`px-2 py-1.5 font-mono tabular-nums ${isLate ? "text-destructive font-semibold" : ""}`}>
           {job.estimatedInstallDate ? formatDate(job.estimatedInstallDate) : "-"}

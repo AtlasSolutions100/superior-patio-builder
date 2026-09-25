@@ -7,6 +7,8 @@
  */
 
 export interface JobUpdate {
+  /** @nullable */
+  soldByUserId?: number | null;
   /** @minLength 1 */
   customerName?: string;
   /** @nullable */

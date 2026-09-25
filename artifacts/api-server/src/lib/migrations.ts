@@ -76,6 +76,20 @@ export async function runStartupMigrations(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS job_assignments_user_id_idx ON job_assignments(user_id);
 
+      -- Who sold a job; drives the commission figure.
+      ALTER TABLE jobs ADD COLUMN IF NOT EXISTS sold_by_user_id integer
+        REFERENCES app_users(id) ON DELETE SET NULL;
+
+      -- Commission bands by contract size (Settings > Commission).
+      CREATE TABLE IF NOT EXISTS commission_tiers (
+        id serial PRIMARY KEY,
+        up_to_amount numeric(12,2),
+        rate_percent numeric(6,3) NOT NULL,
+        position integer NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+
       -- Admin-managed lead sheets (Settings). Replaces the hardcoded/env URL.
       CREATE TABLE IF NOT EXISTS lead_sources (
         id serial PRIMARY KEY,
@@ -92,6 +106,7 @@ export async function runStartupMigrations(): Promise<void> {
 
     await seedStages();
     await seedLeadSources();
+    await seedCommissionTiers();
     logger.info("Startup migrations applied");
   } catch (err) {
     logger.error({ err }, "Startup migrations failed");
@@ -174,4 +189,23 @@ async function seedLeadSources(): Promise<void> {
     ["Lead sheet", envUrl || LEGACY_SHEET_CSV_URL],
   );
   logger.info("Seeded lead source from pre-Settings configuration");
+}
+
+/**
+ * Seeds the one commission rate Justin gave on the Sep 22 call — contracts up
+ * to $20,000 earn 3%. He said the rate steps up above that but did not say by
+ * how much, so no further band is invented here: jobs above $20,000 show no
+ * commission until he adds the next tier in Settings, which is a clearer
+ * prompt than a wrong number.
+ */
+async function seedCommissionTiers(): Promise<void> {
+  const { rows } = await pool.query<{ count: number }>(
+    "SELECT count(*)::int AS count FROM commission_tiers",
+  );
+  if (rows[0].count > 0) return;
+  await pool.query(
+    "INSERT INTO commission_tiers (up_to_amount, rate_percent, position) VALUES ($1, $2, $3)",
+    ["20000.00", "3.000", 1],
+  );
+  logger.info("Seeded the starting commission tier (up to $20,000 at 3%)");
 }

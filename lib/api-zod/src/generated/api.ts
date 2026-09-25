@@ -202,6 +202,9 @@ export const ListJobsResponseItem = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -216,6 +219,7 @@ export const ListJobsResponse = zod.array(ListJobsResponseItem)
 
 
 export const CreateJobBody = zod.object({
+  "soldByUserId": zod.int().nullish(),
   "customerName": zod.string().min(1),
   "phone": zod.string().optional(),
   "address": zod.string().optional(),
@@ -253,6 +257,9 @@ export const CreateJobResponse = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -304,6 +311,9 @@ export const GetJobResponse = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -321,6 +331,7 @@ export const UpdateJobParams = zod.object({
 
 
 export const UpdateJobBody = zod.object({
+  "soldByUserId": zod.int().nullish(),
   "customerName": zod.string().min(1).optional(),
   "phone": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -357,6 +368,9 @@ export const UpdateJobResponse = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -406,6 +420,9 @@ export const MoveJobStageResponse = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -444,6 +461,9 @@ export const SetJobAssigneesResponse = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -478,6 +498,9 @@ export const ArchiveJobResponse = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -512,6 +535,9 @@ export const UnarchiveJobResponse = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -563,6 +589,74 @@ export const AddJobNoteResponse = zod.object({
  * @summary Export operational columns as CSV
  */
 export const ExportJobsCsvResponse = zod.unknown()
+
+
+/**
+ * @summary Commission bands by contract size (full-access only)
+ */
+export const ListCommissionTiersResponseItem = zod.object({
+  "id": zod.int(),
+  "upToAmount": zod.number().nullable().describe('Inclusive upper bound of the band; null means no upper bound'),
+  "ratePercent": zod.number().describe('Percent of contract amount, e.g. 3 = 3%'),
+  "position": zod.int()
+})
+export const ListCommissionTiersResponse = zod.array(ListCommissionTiersResponseItem)
+
+
+/**
+ * @summary Add a commission band (full-access only)
+ */
+export const createCommissionTierBodyRatePercentMin = 0;
+export const createCommissionTierBodyRatePercentMax = 100;
+
+
+
+export const CreateCommissionTierBody = zod.object({
+  "upToAmount": zod.number().nullish(),
+  "ratePercent": zod.number().min(createCommissionTierBodyRatePercentMin).max(createCommissionTierBodyRatePercentMax)
+})
+
+export const CreateCommissionTierResponse = zod.object({
+  "id": zod.int(),
+  "upToAmount": zod.number().nullable().describe('Inclusive upper bound of the band; null means no upper bound'),
+  "ratePercent": zod.number().describe('Percent of contract amount, e.g. 3 = 3%'),
+  "position": zod.int()
+})
+
+
+/**
+ * @summary Change a band's cap or rate (full-access only)
+ */
+export const UpdateCommissionTierParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const updateCommissionTierBodyRatePercentMin = 0;
+export const updateCommissionTierBodyRatePercentMax = 100;
+
+
+
+export const UpdateCommissionTierBody = zod.object({
+  "upToAmount": zod.number().nullish(),
+  "ratePercent": zod.number().min(updateCommissionTierBodyRatePercentMin).max(updateCommissionTierBodyRatePercentMax).optional()
+})
+
+export const UpdateCommissionTierResponse = zod.object({
+  "id": zod.int(),
+  "upToAmount": zod.number().nullable().describe('Inclusive upper bound of the band; null means no upper bound'),
+  "ratePercent": zod.number().describe('Percent of contract amount, e.g. 3 = 3%'),
+  "position": zod.int()
+})
+
+
+/**
+ * @summary Remove a commission band (full-access only)
+ */
+export const DeleteCommissionTierParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteCommissionTierResponse = zod.void()
 
 
 /**
@@ -740,6 +834,9 @@ export const GetBoardSummaryResponse = zod.object({
   "id": zod.int(),
   "name": zod.string()
 })).optional().describe('Team members assigned to this job. Populated on list responses and assignment updates.'),
+  "soldByUserId": zod.int().nullish().describe('Team member credited with the sale'),
+  "soldByName": zod.string().nullish().describe('Display name for soldByUserId, resolved server-side'),
+  "commissionAmount": zod.number().nullish().describe('Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.'),
   "leadDate": zod.string().nullish().describe('When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.'),
   "createdAt": zod.string(),
   "updatedAt": zod.string()

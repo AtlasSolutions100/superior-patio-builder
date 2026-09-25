@@ -378,7 +378,7 @@ export default function SalesPage() {
           <span className="hidden sm:inline">Came in</span>
           <Input
             type="date"
-            className="h-8 w-[8.5rem] text-sm"
+            className="h-8 w-[9.75rem] text-sm"
             value={fltFrom}
             onChange={e => setFltFrom(e.target.value)}
             title="Leads that came in on or after this date"
@@ -386,7 +386,7 @@ export default function SalesPage() {
           <span>–</span>
           <Input
             type="date"
-            className="h-8 w-[8.5rem] text-sm"
+            className="h-8 w-[9.75rem] text-sm"
             value={fltTo}
             onChange={e => setFltTo(e.target.value)}
             title="Leads that came in on or before this date"

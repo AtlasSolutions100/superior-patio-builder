@@ -6,6 +6,8 @@ import {
   jobNotesTable,
   jobAssignmentsTable,
   appUsersTable,
+  commissionTiersTable,
+  commissionFor,
   type Job,
   type JobNote,
   type JobStage,
@@ -63,6 +65,36 @@ function toApi(job: Job) {
 export interface Assignee {
   id: number;
   name: string;
+}
+
+/** Commission bands, smallest first. Cheap table, read per request. */
+async function loadTiers() {
+  return db
+    .select({
+      upToAmount: commissionTiersTable.upToAmount,
+      ratePercent: commissionTiersTable.ratePercent,
+    })
+    .from(commissionTiersTable);
+}
+
+/** Display names for the users credited with sales on these jobs. */
+async function soldByNames(ids: number[]): Promise<Map<number, string>> {
+  const map = new Map<number, string>();
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return map;
+  const rows = await db
+    .select({
+      id: appUsersTable.id,
+      name: appUsersTable.name,
+      username: appUsersTable.username,
+      email: appUsersTable.email,
+    })
+    .from(appUsersTable)
+    .where(inArray(appUsersTable.id, unique));
+  for (const r of rows) {
+    map.set(r.id, r.name || r.username || r.email || "Unknown");
+  }
+  return map;
 }
 
 /** Assigned team members for a set of jobs, grouped by job id. */
@@ -140,7 +172,13 @@ router.get("/jobs", requireUser, async (req, res): Promise<void> => {
     .where(and(...conditions))
     .orderBy(...installDateOrder);
 
-  const assignees = await assigneesByJob(rows.map((r) => r.job.id));
+  const [assignees, tiers, names] = await Promise.all([
+    assigneesByJob(rows.map((r) => r.job.id)),
+    loadTiers(),
+    soldByNames(
+      rows.map((r) => r.job.soldByUserId).filter((v): v is number => v != null),
+    ),
+  ]);
 
   res.json(
     ListJobsResponse.parse(
@@ -148,6 +186,11 @@ router.get("/jobs", requireUser, async (req, res): Promise<void> => {
         ...toApi(job),
         leadDate: leadDate == null ? null : new Date(leadDate).toISOString(),
         assignees: assignees.get(job.id) ?? [],
+        soldByName: job.soldByUserId == null ? null : names.get(job.soldByUserId) ?? null,
+        commissionAmount: commissionFor(
+          job.contractAmount == null ? null : Number(job.contractAmount),
+          tiers,
+        ),
       })),
     ),
   );
@@ -275,6 +318,10 @@ router.get("/jobs/export", requireUser, async (_req, res): Promise<void> => {
     .orderBy(...installDateOrder);
 
   const stageLabels = await allStageLabels();
+  const [exportTiers, exportNames] = await Promise.all([
+    loadTiers(),
+    soldByNames(jobs.map((j) => j.soldByUserId).filter((v): v is number => v != null)),
+  ]);
 
   const header = [
     "Customer Name",
@@ -290,6 +337,8 @@ router.get("/jobs/export", requireUser, async (_req, res): Promise<void> => {
     "Deposit Paid",
     "Ordered",
     "Received",
+    "Sold By",
+    "Commission",
     "Last Note",
   ];
 
@@ -313,6 +362,14 @@ router.get("/jobs/export", requireUser, async (_req, res): Promise<void> => {
       j.depositPaid ? "Yes" : "No",
       j.materialOrdered ? "Yes" : "No",
       j.materialReceived ? "Yes" : "No",
+      j.soldByUserId == null ? "" : exportNames.get(j.soldByUserId) ?? "",
+      (() => {
+        const c = commissionFor(
+          j.contractAmount == null ? null : Number(j.contractAmount),
+          exportTiers,
+        );
+        return c == null ? "" : c.toFixed(2);
+      })(),
       j.lastNote,
     ]
       .map(escape)

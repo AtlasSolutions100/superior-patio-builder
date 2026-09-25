@@ -11,13 +11,19 @@ import {
   useUpdateLeadSource,
   useDeleteLeadSource,
   useSyncLeadSource,
+  useListCommissionTiers,
+  useCreateCommissionTier,
+  useUpdateCommissionTier,
+  useDeleteCommissionTier,
   getListStagesQueryKey,
   getListLeadSourcesQueryKey,
+  getListCommissionTiersQueryKey,
   getListJobsQueryKey,
   getGetBoardSummaryQueryKey,
   type Stage,
   type LeadSource,
   type LeadSourceTestResult,
+  type CommissionTier,
 } from "@workspace/api-client-react";
 import { useStages } from "@/hooks/use-stages";
 import { queryClient } from "@/lib/query-client";
@@ -97,6 +103,7 @@ export default function SettingsPage() {
               showFlags
             />
             <LeadSheetsSection />
+            <CommissionSection />
           </div>
         )}
       </div>
@@ -744,6 +751,204 @@ function LeadSheetRow({
         disabled={deleteSource.isPending}
         className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0"
         title="Remove this sheet"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// Commission — the rate paid on a sale, banded by contract size.
+// ---------------------------------------------------------------------------
+
+const money = (n: number) =>
+  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+function CommissionSection() {
+  const { data: tiers, isLoading } = useListCommissionTiers({
+    query: { queryKey: getListCommissionTiersQueryKey() },
+  });
+  const createTier = useCreateCommissionTier();
+  const [cap, setCap] = React.useState("");
+  const [rate, setRate] = React.useState("");
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: getListCommissionTiersQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+  };
+
+  const list = tiers ?? [];
+  const hasOpenBand = list.some((t) => t.upToAmount == null);
+  const highestCap = list.reduce(
+    (max, t) => (t.upToAmount != null && t.upToAmount > max ? t.upToAmount : max),
+    0,
+  );
+
+  const handleAdd = () => {
+    const r = Number(rate);
+    if (!Number.isFinite(r) || r < 0 || r > 100) {
+      toast.error("Enter a rate between 0 and 100");
+      return;
+    }
+    const c = cap.trim() === "" ? null : Number(cap);
+    if (c !== null && (!Number.isFinite(c) || c <= 0)) {
+      toast.error("Enter a dollar cap, or leave it blank for everything above");
+      return;
+    }
+    createTier.mutate(
+      { data: { upToAmount: c, ratePercent: r } },
+      {
+        onSuccess: () => {
+          setCap("");
+          setRate("");
+          invalidate();
+          toast.success("Commission band added");
+        },
+        onError: (err: any) => toast.error(errMsg(err, "Couldn't add that band — try again.")),
+      },
+    );
+  };
+
+  return (
+    <section>
+      <h2 className="text-sm font-semibold text-foreground">Commission</h2>
+      <p className="text-xs text-muted-foreground mt-0.5 mb-3 max-w-xl">
+        What a sale pays, by contract size. Each job shows its commission on
+        the Job List and in the CSV export, credited to whoever is set as
+        "Sold by" on the job.
+      </p>
+
+      <div className="rounded-lg border border-border bg-card divide-y divide-border">
+        {isLoading ? (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin inline mr-1.5" /> Loading…
+          </div>
+        ) : list.length === 0 ? (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+            No commission bands yet — add your first one below.
+          </div>
+        ) : (
+          list.map((tier) => (
+            <CommissionRow key={tier.id} tier={tier} onChanged={invalidate} />
+          ))
+        )}
+      </div>
+
+      {!isLoading && list.length > 0 && !hasOpenBand && (
+        <p className="text-xs text-muted-foreground mt-2 inline-flex items-start gap-1.5 max-w-xl">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-500" />
+          <span>
+            Jobs over {money(highestCap)} show no commission yet. Add a band and
+            leave the cap blank to cover everything above.
+          </span>
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 mt-3">
+        <span className="text-xs text-muted-foreground">Contracts up to</span>
+        <Input
+          value={cap}
+          onChange={(e) => setCap(e.target.value)}
+          placeholder="20000"
+          inputMode="decimal"
+          className="h-8 text-sm w-28"
+        />
+        <span className="text-xs text-muted-foreground">pay</span>
+        <Input
+          value={rate}
+          onChange={(e) => setRate(e.target.value)}
+          placeholder="3"
+          inputMode="decimal"
+          className="h-8 text-sm w-20"
+        />
+        <span className="text-xs text-muted-foreground">%</span>
+        <Button size="sm" className="h-8" onClick={handleAdd} disabled={createTier.isPending || !rate.trim()}>
+          {createTier.isPending ? (
+            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+          )}
+          Add band
+        </Button>
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-1.5">
+        Leave the dollar box empty for "everything above the last band".
+      </p>
+    </section>
+  );
+}
+
+function CommissionRow({ tier, onChanged }: { tier: CommissionTier; onChanged: () => void }) {
+  const updateTier = useUpdateCommissionTier();
+  const deleteTier = useDeleteCommissionTier();
+  const [rate, setRate] = React.useState(String(tier.ratePercent));
+
+  React.useEffect(() => setRate(String(tier.ratePercent)), [tier.ratePercent]);
+
+  const saveRate = () => {
+    const r = Number(rate);
+    if (!Number.isFinite(r) || r < 0 || r > 100) {
+      setRate(String(tier.ratePercent));
+      toast.error("Enter a rate between 0 and 100");
+      return;
+    }
+    if (r === tier.ratePercent) return;
+    updateTier.mutate(
+      { id: tier.id, data: { ratePercent: r } },
+      {
+        onSuccess: onChanged,
+        onError: (err: any) => {
+          setRate(String(tier.ratePercent));
+          toast.error(errMsg(err, "Couldn't save that rate — try again."));
+        },
+      },
+    );
+  };
+
+  const handleDelete = () => {
+    deleteTier.mutate(
+      { id: tier.id },
+      {
+        onSuccess: () => {
+          onChanged();
+          toast.success("Band removed");
+        },
+        onError: (err: any) => toast.error(errMsg(err, "Couldn't remove that band — try again.")),
+      },
+    );
+  };
+
+  return (
+    <div className="px-3 py-2.5 flex items-center gap-3">
+      <div className="flex-1 min-w-0 text-sm">
+        {tier.upToAmount == null ? (
+          <span>Everything above the other bands</span>
+        ) : (
+          <span>Contracts up to <span className="font-medium">{money(tier.upToAmount)}</span></span>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Input
+          value={rate}
+          onChange={(e) => setRate(e.target.value)}
+          onBlur={saveRate}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+          inputMode="decimal"
+          className="h-7 w-16 text-sm text-right"
+          aria-label="Commission rate percent"
+        />
+        <span className="text-xs text-muted-foreground">%</span>
+      </div>
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={deleteTier.isPending}
+        className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+        title="Remove this band"
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>

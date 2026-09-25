@@ -43,6 +43,21 @@ export interface Job {
   /** Team members assigned to this job. Populated on list responses and assignment updates. */
   assignees?: JobAssignee[];
   /**
+     * Team member credited with the sale
+     * @nullable
+     */
+  soldByUserId?: number | null;
+  /**
+     * Display name for soldByUserId, resolved server-side
+     * @nullable
+     */
+  soldByName?: string | null;
+  /**
+     * Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.
+     * @nullable
+     */
+  commissionAmount?: number | null;
+  /**
      * When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.
      * @nullable
      */

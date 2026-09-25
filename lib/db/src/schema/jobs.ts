@@ -2,6 +2,7 @@ import {
   pgTable,
   text,
   serial,
+  integer,
   timestamp,
   date,
   numeric,
@@ -29,6 +30,8 @@ export const jobsTable = pgTable("jobs", {
   estimatedInstallDate: date("estimated_install_date", { mode: "string" }),
   stage: text("stage").notNull().default("new_lead"),
   lastNote: text("last_note"),
+  /** Who sold it — drives commission. Null for leads and older jobs. */
+  soldByUserId: integer("sold_by_user_id"),
   invoicedWithQb: boolean("invoiced_with_qb").notNull().default(false),
   depositPaid: boolean("deposit_paid").notNull().default(false),
   materialOrdered: boolean("material_ordered").notNull().default(false),

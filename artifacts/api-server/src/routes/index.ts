@@ -7,6 +7,7 @@ import feedbackRouter from "./feedback";
 import demoRouter from "./demo";
 import stagesRouter from "./stages";
 import leadSourcesRouter from "./leadSources";
+import commissionTiersRouter from "./commissionTiers";
 
 const router: IRouter = Router();
 
@@ -17,6 +18,7 @@ router.use(stagesRouter);
 router.use(jobsRouter);
 router.use(leadSyncRouter);
 router.use(leadSourcesRouter);
+router.use(commissionTiersRouter);
 router.use(feedbackRouter);
 
 export default router;

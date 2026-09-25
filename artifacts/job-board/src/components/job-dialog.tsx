@@ -39,6 +39,7 @@ const jobSchema = z.object({
   estimatedInstallDate: z.string().optional().nullable(),
   lastNote: z.string().optional().nullable(),
   stage: z.string().optional(),
+  soldByUserId: z.number().nullable().optional(),
 });
 // The "job stages need an install date" rule is checked in onSubmit — which
 // stages are job stages is data (Settings), not something a static schema knows.
@@ -96,6 +97,7 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
           estimatedInstallDate: "",
           lastNote: "",
           stage: entrySalesKey ?? "",
+          soldByUserId: null,
         });
       }
     }
@@ -278,6 +280,22 @@ export function JobDialog({ job, open, onOpenChange }: { job?: Job, open: boolea
             <div className="space-y-2">
               <Label htmlFor="contractAmount">Contract Amount ($)</Label>
               <Input id="contractAmount" type="number" step="0.01" {...form.register("contractAmount")} disabled={fieldsDisabled} />
+              {isEditing && job.commissionAmount != null && (
+                <p className="text-xs text-muted-foreground">
+                  Commission: <span className="font-medium text-foreground">
+                    {job.commissionAmount.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                  </span>
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="soldByUserId">Sold By</Label>
+              <SoldBySelect
+                value={form.watch("soldByUserId") ?? null}
+                onChange={(v) => form.setValue("soldByUserId", v, { shouldDirty: true })}
+                disabled={fieldsDisabled}
+              />
             </div>
 
             <div className="space-y-2">
@@ -471,5 +489,40 @@ function AssignedCrew({ job, isAdmin }: { job: Job; isAdmin: boolean }) {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Who gets credit for the sale. Viewers aren't offered — they don't sell.
+ */
+function SoldBySelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  disabled?: boolean;
+}) {
+  const { data: users } = useListUsers({
+    query: { enabled: !disabled, queryKey: getListUsersQueryKey() },
+  });
+  const options = (users ?? []).filter((u) => u.role !== "viewer");
+
+  return (
+    <select
+      id="soldByUserId"
+      value={value ?? ""}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <option value="">Not set</option>
+      {options.map((u) => (
+        <option key={u.id} value={u.id}>
+          {u.name || u.username || u.email || "Unknown"}
+        </option>
+      ))}
+    </select>
   );
 }

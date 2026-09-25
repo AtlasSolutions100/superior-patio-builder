@@ -62,6 +62,38 @@ export interface BulkArchiveResult {
   count: number;
 }
 
+export interface CommissionTier {
+  id: number;
+  /**
+     * Inclusive upper bound of the band; null means no upper bound
+     * @nullable
+     */
+  upToAmount: number | null;
+  /** Percent of contract amount, e.g. 3 = 3% */
+  ratePercent: number;
+  position: number;
+}
+
+export interface CommissionTierInput {
+  /** @nullable */
+  upToAmount?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  ratePercent: number;
+}
+
+export interface CommissionTierUpdate {
+  /** @nullable */
+  upToAmount?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  ratePercent?: number;
+}
+
 export interface LeadSource {
   id: number;
   name: string;
@@ -339,6 +371,21 @@ export interface Job {
   /** Team members assigned to this job. Populated on list responses and assignment updates. */
   assignees?: JobAssignee[];
   /**
+     * Team member credited with the sale
+     * @nullable
+     */
+  soldByUserId?: number | null;
+  /**
+     * Display name for soldByUserId, resolved server-side
+     * @nullable
+     */
+  soldByName?: string | null;
+  /**
+     * Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.
+     * @nullable
+     */
+  commissionAmount?: number | null;
+  /**
      * When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.
      * @nullable
      */
@@ -348,6 +395,8 @@ export interface Job {
 }
 
 export interface JobInput {
+  /** @nullable */
+  soldByUserId?: number | null;
   /** @minLength 1 */
   customerName: string;
   phone?: string;
@@ -367,6 +416,8 @@ export interface JobInput {
 }
 
 export interface JobUpdate {
+  /** @nullable */
+  soldByUserId?: number | null;
   /** @minLength 1 */
   customerName?: string;
   /** @nullable */

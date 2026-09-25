@@ -704,6 +704,90 @@ paths:
             text/csv:
               schema:
                 type: string
+  /commission-tiers:
+    get:
+      operationId: listCommissionTiers
+      tags: [stages]
+      summary: Commission bands by contract size (full-access only)
+      responses:
+        "200":
+          description: Tiers, smallest band first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommissionTier"
+    post:
+      operationId: createCommissionTier
+      tags: [stages]
+      summary: Add a commission band (full-access only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissionTierInput"
+      responses:
+        "201":
+          description: Created tier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionTier"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /commission-tiers/{id}:
+    patch:
+      operationId: updateCommissionTier
+      tags: [stages]
+      summary: Change a band's cap or rate (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommissionTierUpdate"
+      responses:
+        "200":
+          description: Updated tier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionTier"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "404":
+          description: Tier not found
+    delete:
+      operationId: deleteCommissionTier
+      tags: [stages]
+      summary: Remove a commission band (full-access only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Tier removed
+        "404":
+          description: Tier not found
   /lead-sources:
     get:
       operationId: listLeadSources
@@ -1118,6 +1202,39 @@ components:
           description: Leads archived, or matching leads when dryRun
       required:
         - count
+    CommissionTier:
+      type: object
+      properties:
+        id:
+          type: integer
+        upToAmount:
+          type: ["number", "null"]
+          description: Inclusive upper bound of the band; null means no upper bound
+        ratePercent:
+          type: number
+          description: Percent of contract amount, e.g. 3 = 3%
+        position:
+          type: integer
+      required: [id, upToAmount, ratePercent, position]
+    CommissionTierInput:
+      type: object
+      properties:
+        upToAmount:
+          type: ["number", "null"]
+        ratePercent:
+          type: number
+          minimum: 0
+          maximum: 100
+      required: [ratePercent]
+    CommissionTierUpdate:
+      type: object
+      properties:
+        upToAmount:
+          type: ["number", "null"]
+        ratePercent:
+          type: number
+          minimum: 0
+          maximum: 100
     LeadSource:
       type: object
       properties:
@@ -1435,6 +1552,15 @@ components:
           items:
             $ref: "#/components/schemas/JobAssignee"
           description: Team members assigned to this job. Populated on list responses and assignment updates.
+        soldByUserId:
+          type: ["integer", "null"]
+          description: Team member credited with the sale
+        soldByName:
+          type: ["string", "null"]
+          description: Display name for soldByUserId, resolved server-side
+        commissionAmount:
+          type: ["number", "null"]
+          description: Commission earned, from the configured tiers. Null when no tier covers the contract amount or there is no amount.
         leadDate:
           type: ["string", "null"]
           description: When the lead actually came in — the spreadsheet submission date for imported leads, else when the record was created. Only populated on list responses.
@@ -1463,6 +1589,8 @@ components:
     JobInput:
       type: object
       properties:
+        soldByUserId:
+          type: ["integer", "null"]
         customerName:
           type: string
           minLength: 1
@@ -1496,6 +1624,8 @@ components:
     JobUpdate:
       type: object
       properties:
+        soldByUserId:
+          type: ["integer", "null"]
         customerName:
           type: string
           minLength: 1

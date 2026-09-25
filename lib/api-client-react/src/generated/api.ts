@@ -24,6 +24,9 @@ import type {
   BoardSummary,
   BulkArchiveRequest,
   BulkArchiveResult,
+  CommissionTier,
+  CommissionTierInput,
+  CommissionTierUpdate,
   CurrentUser,
   ErrorMessage,
   Feedback,
@@ -1777,6 +1780,297 @@ export function useExportJobsCsv<TData = Awaited<ReturnType<typeof exportJobsCsv
 
 
 
+
+export const getListCommissionTiersUrl = () => {
+
+
+
+
+  return `/api/commission-tiers`
+}
+
+/**
+ * @summary Commission bands by contract size (full-access only)
+ */
+export const listCommissionTiers = async ( options?: Parameters<typeof customFetch>[1]): Promise<CommissionTier[]> => {
+
+  return customFetch<CommissionTier[]>(getListCommissionTiersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCommissionTiersQueryKey = () => {
+    return [
+    `/api/commission-tiers`
+    ] as const;
+    }
+
+
+export const getListCommissionTiersQueryOptions = <TData = Awaited<ReturnType<typeof listCommissionTiers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCommissionTiers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCommissionTiersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCommissionTiers>>> = ({ signal }) => listCommissionTiers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCommissionTiers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCommissionTiersQueryResult = NonNullable<Awaited<ReturnType<typeof listCommissionTiers>>>
+export type ListCommissionTiersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Commission bands by contract size (full-access only)
+ */
+
+export function useListCommissionTiers<TData = Awaited<ReturnType<typeof listCommissionTiers>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCommissionTiers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCommissionTiersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCommissionTierUrl = () => {
+
+
+
+
+  return `/api/commission-tiers`
+}
+
+/**
+ * @summary Add a commission band (full-access only)
+ */
+export const createCommissionTier = async (commissionTierInput: CommissionTierInput, options?: Parameters<typeof customFetch>[1]): Promise<CommissionTier> => {
+
+  return customFetch<CommissionTier>(getCreateCommissionTierUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(commissionTierInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCommissionTierMutationOptions = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCommissionTier>>, TError,{data: BodyType<CommissionTierInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCommissionTier>>, TError,{data: BodyType<CommissionTierInput>}, TContext> => {
+
+const mutationKey = ['createCommissionTier'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCommissionTier>>, {data: BodyType<CommissionTierInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCommissionTier(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCommissionTierMutationResult = NonNullable<Awaited<ReturnType<typeof createCommissionTier>>>
+    export type CreateCommissionTierMutationBody = BodyType<CommissionTierInput>
+    export type CreateCommissionTierMutationError = ErrorType<ErrorMessage>
+
+    /**
+ * @summary Add a commission band (full-access only)
+ */
+export const useCreateCommissionTier = <TError = ErrorType<ErrorMessage>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCommissionTier>>, TError,{data: BodyType<CommissionTierInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCommissionTier>>,
+        TError,
+        {data: BodyType<CommissionTierInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCommissionTierMutationOptions(options));
+    }
+
+export const getUpdateCommissionTierUrl = (id: number,) => {
+
+
+
+
+  return `/api/commission-tiers/${id}`
+}
+
+/**
+ * @summary Change a band's cap or rate (full-access only)
+ */
+export const updateCommissionTier = async (id: number,
+    commissionTierUpdate: CommissionTierUpdate, options?: Parameters<typeof customFetch>[1]): Promise<CommissionTier> => {
+
+  return customFetch<CommissionTier>(getUpdateCommissionTierUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(commissionTierUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateCommissionTierMutationOptions = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCommissionTier>>, TError,{id: number;data: BodyType<CommissionTierUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCommissionTier>>, TError,{id: number;data: BodyType<CommissionTierUpdate>}, TContext> => {
+
+const mutationKey = ['updateCommissionTier'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCommissionTier>>, {id: number;data: BodyType<CommissionTierUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCommissionTier(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCommissionTierMutationResult = NonNullable<Awaited<ReturnType<typeof updateCommissionTier>>>
+    export type UpdateCommissionTierMutationBody = BodyType<CommissionTierUpdate>
+    export type UpdateCommissionTierMutationError = ErrorType<ErrorMessage | void>
+
+    /**
+ * @summary Change a band's cap or rate (full-access only)
+ */
+export const useUpdateCommissionTier = <TError = ErrorType<ErrorMessage | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCommissionTier>>, TError,{id: number;data: BodyType<CommissionTierUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCommissionTier>>,
+        TError,
+        {id: number;data: BodyType<CommissionTierUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCommissionTierMutationOptions(options));
+    }
+
+export const getDeleteCommissionTierUrl = (id: number,) => {
+
+
+
+
+  return `/api/commission-tiers/${id}`
+}
+
+/**
+ * @summary Remove a commission band (full-access only)
+ */
+export const deleteCommissionTier = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteCommissionTierUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteCommissionTierMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCommissionTier>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCommissionTier>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteCommissionTier'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCommissionTier>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteCommissionTier(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCommissionTierMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCommissionTier>>>
+
+    export type DeleteCommissionTierMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove a commission band (full-access only)
+ */
+export const useDeleteCommissionTier = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCommissionTier>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCommissionTier>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCommissionTierMutationOptions(options));
+    }
 
 export const getListLeadSourcesUrl = () => {
 

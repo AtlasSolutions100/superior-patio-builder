@@ -8,6 +8,8 @@
 import type { JobStage } from './jobStage';
 
 export interface JobInput {
+  /** @nullable */
+  soldByUserId?: number | null;
   /** @minLength 1 */
   customerName: string;
   phone?: string;

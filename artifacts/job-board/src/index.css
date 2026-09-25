@@ -146,6 +146,26 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+  /* Native date fields: Chrome reserves room for its calendar button inside
+     the padding box, so the default px-3 clipped it in the narrow filter
+     inputs. Trim the right padding and give the button room. */
+  input[type="date"] {
+    padding-right: 0.45rem;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    margin-inline-start: 0.2rem;
+    opacity: 0.55;
+    cursor: pointer;
+  }
+  input[type="date"]:hover::-webkit-calendar-picker-indicator,
+  input[type="date"]:focus::-webkit-calendar-picker-indicator {
+    opacity: 1;
+  }
+  /* The picker glyph is a dark bitmap; invert it on dark grounds or it
+     vanishes into the input. */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.6);
+  }
 }
 
 /* Always-visible, easy-to-grab horizontal scrollbar for the Kanban board */
